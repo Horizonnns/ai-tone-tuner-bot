@@ -1,36 +1,33 @@
 import { Telegraf, Markup } from "telegraf";
-import OpenAI from "openai";
+import axios from "axios";
 import dotenv from "dotenv";
+import { log } from "../utils/logger";
 dotenv.config();
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
+const API_URL = process.env.API_URL || "http://localhost:4000/api/rewrite";
 
-// Простая память: userId -> lastMessage
+// Простая память для последних сообщений
 const userMessages = new Map<number, string>();
 
-// 🧠 Новое: лимиты пользователей
-const userLimits = new Map<number, { count: number; lastDate: string }>();
-
 // 👋 /start
-bot.start((ctx) => {
-  ctx.replyWithMarkdownV2(
+bot.start(async (ctx) => {
+  await ctx.replyWithMarkdownV2(
     `Привет, ${ctx.from.first_name}\\! 👋
 Я *AI Tone Writer* — твой редактор настроения\\. 💫
 Напиши текст, выбери стиль — и я сделаю его звучным\\!
 Напиши, например:
 _"Нужен React\\-разработчик"_`
   );
+  log(`Пользователь ${ctx.from.id} запустил бота`);
 });
 
-// 💬 Основной обработчик текста
+// 💬 Принимаем текст
 bot.on("text", async (ctx) => {
   const text = ctx.message.text;
-
-  // Сохраняем текст
   userMessages.set(ctx.from.id, text);
 
-  ctx.reply(
+  await ctx.reply(
     "Выбери стиль, в котором переписать:",
     Markup.inlineKeyboard([
       [Markup.button.callback("💼 Деловой", "tone_business")],
@@ -39,93 +36,154 @@ bot.on("text", async (ctx) => {
       [Markup.button.callback("✨ Вдохновляющий", "tone_inspire")],
     ])
   );
-
-  (ctx as any).session = { text };
 });
 
 // ⚙️ Обработка выбора стиля
 bot.action(/tone_(.+)/, async (ctx) => {
   const tone = ctx.match[1];
   const userId = ctx.from.id;
-  const today = new Date().toISOString().slice(0, 10);
-  const userLimit = userLimits.get(userId);
+  const originalText = userMessages.get(userId);
 
-  // 🧩 Проверяем лимит ДО удаления клавиатуры
-  const isLimited =
-    userLimit && userLimit.lastDate === today && userLimit.count >= 5;
-
-  // Удаляем клавиатуру (в любом случае)
+  // Удаляем кнопки после выбора
   try {
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   } catch {}
 
-  const originalText = userMessages.get(userId);
   if (!originalText) {
     await ctx.reply("Отправь текст сначала 🙂");
     return;
   }
 
-  // 💫 Отображаем "переписываю..."
+  // Показать “переписываю...”
   const thinkingMsg = await ctx.reply("✨ Переписываю...");
   await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
-  // 🚧 Если лимит достигнут — показываем сообщение вместо генерации
-  if (isLimited) {
+  try {
+    const response = await axios.post(API_URL, {
+      text: originalText,
+      tone,
+      telegramId: String(userId),
+    });
+
+    if (
+      response.status === 403 ||
+      response.data?.message?.includes("Достигнут лимит")
+    ) {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
+          "💎 Хочешь без ограничений? Подписка AI Tone Writer Premium — скоро!"
+      );
+      log(`Пользователь ${userId} достиг лимита (403).`);
+      return;
+    }
+
+    const result = response.data.result;
+    const usageCount = response.data.usageCount ?? "?";
+
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
-      "😅 Ты достиг лимита в 5 преобразований на сегодня.\n\n" +
-        "Хочешь без ограничений? 💎 Скоро будет подписка AI Tone Writer Premium!"
+      `✨ Переписываю... (${usageCount}/5 попыток на сегодня)\n\n` +
+        `Вот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
+      { parse_mode: "Markdown" }
     );
-    return;
+
+    log(`User ${userId} rewrote text in ${tone} tone (${usageCount}/5)`);
+
+    userMessages.delete(userId);
+  } catch (err: any) {
+    console.error(err);
+
+    // если сервер прислал 403, отразим красиво
+    if (
+      err.response?.status === 403 &&
+      err.response?.data?.message?.includes("Достигнут лимит")
+    ) {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪"
+      );
+      log(`Пользователь ${userId} достиг лимита (catch)`);
+      return;
+    }
+
+    // иначе — общая ошибка
+    await ctx.telegram.editMessageText(
+      ctx.chat.id,
+      thinkingMsg.message_id,
+      undefined,
+      "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
+    );
   }
 
-  // 📊 Обновляем или создаём счётчик
-  if (!userLimit || userLimit.lastDate !== today) {
-    userLimits.set(userId, { count: 1, lastDate: today });
-  } else {
-    userLimit.count += 1;
-    userLimits.set(userId, userLimit);
-  }
+  // try {
+  //   // Запрос к API
+  //   const response = await axios.post(API_URL, {
+  //     text: originalText,
+  //     tone,
+  //     telegramId: String(userId),
+  //   });
 
-  const toneMap: Record<string, string> = {
-    business: "деловой профессиональный стиль",
-    friendly: "дружелюбный лёгкий тон",
-    hype: "современный, эмоциональный и хайповый стиль",
-    inspire: "вдохновляющий",
-  };
+  //   if (response.data?.error) {
+  //     throw new Error(response.data.error);
+  //   }
 
-  // 🧠 Генерация текста
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `Ты помощник, который переписывает текст в заданном тоне.`,
-      },
-      {
-        role: "user",
-        content: `Перепиши следующий текст в ${toneMap[tone]}:\n\n${originalText}`,
-      },
-    ],
-  });
+  //   if (response.data?.message?.includes("Достигнут лимит")) {
+  //     await ctx.telegram.editMessageText(
+  //       ctx.chat.id,
+  //       thinkingMsg.message_id,
+  //       undefined,
+  //       "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
+  //         "💎 Хочешь без ограничений? Подписка AI Tone Writer Premium — скоро!"
+  //     );
+  //     log(`Пользователь ${userId} достиг лимита.`);
+  //     return;
+  //   }
 
-  const result =
-    completion.choices[0].message?.content || "Что-то пошло не так 😅";
+  //   const result = response.data.result;
+  //   const usageCount = response.data.usageCount ?? "?";
 
-  // ✏️ Заменяем сообщение “Переписываю...” на результат
-  await ctx.telegram.editMessageText(
-    ctx.chat.id,
-    thinkingMsg.message_id,
-    undefined,
-    `Вот твой текст в стиле *${toneMap[tone]}*:\n\n${result}`,
-    { parse_mode: "Markdown" }
-  );
+  //   await ctx.telegram.editMessageText(
+  //     ctx.chat.id,
+  //     thinkingMsg.message_id,
+  //     undefined,
+  //     `✨ Переписываю... (${usageCount}/5 попыток на сегодня)\n\n` +
+  //       `Вот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
+  //     { parse_mode: "Markdown" }
+  //   );
 
-  userMessages.delete(userId);
+  //   log(`User ${userId} rewrote text in ${tone} tone (${usageCount}/5)`);
+
+  //   userMessages.delete(userId);
+  // } catch (err: any) {
+  //   console.error(err);
+  //   await ctx.telegram.editMessageText(
+  //     ctx.chat.id,
+  //     thinkingMsg.message_id,
+  //     undefined,
+  //     "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
+  //   );
+  // }
 });
+
+// 🎨 Словарь стилей
+function toneLabel(key: string) {
+  const map: Record<string, string> = {
+    business: "💼 деловой профессиональный стиль",
+    friendly: "💬 дружелюбный лёгкий тон",
+    hype: "🚀 современный и хайповый стиль",
+    inspire: "✨ вдохновляющий стиль",
+  };
+  return map[key] || key;
+}
 
 // 🚀 Запуск
 bot.launch();
 console.log("🤖 Telegram бот запущен!");
+log("Бот успешно запущен");
