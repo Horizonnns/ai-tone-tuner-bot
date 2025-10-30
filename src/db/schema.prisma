@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  telegramId   String?  @unique
+  usageCount   Int      @default(0)
+  lastUsedAt   DateTime @default(now())
+  isPremium    Boolean  @default(false)
+}
