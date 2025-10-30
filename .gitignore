@@ -6,3 +6,11 @@ package-lock.json
 
 
 /src/generated/prisma
+
+# Logs
+logs.txt
+logs/
+
+# Local sqlite database
+/src/db/dev.db
+/src/db/*.db-journal
