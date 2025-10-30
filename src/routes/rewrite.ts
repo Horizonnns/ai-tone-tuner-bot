@@ -18,7 +18,9 @@ router.post("/rewrite", async (req, res) => {
     }
 
     const rewritten = await rewriteText(text, tone);
-    res.json({ result: rewritten });
+    const updatedUser = await getOrCreateUser(telegramId);
+
+    res.json({ result: rewritten, usageCount: updatedUser.usageCount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });

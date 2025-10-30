@@ -121,55 +121,6 @@ bot.action(/tone_(.+)/, async (ctx) => {
       "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
     );
   }
-
-  // try {
-  //   // Запрос к API
-  //   const response = await axios.post(API_URL, {
-  //     text: originalText,
-  //     tone,
-  //     telegramId: String(userId),
-  //   });
-
-  //   if (response.data?.error) {
-  //     throw new Error(response.data.error);
-  //   }
-
-  //   if (response.data?.message?.includes("Достигнут лимит")) {
-  //     await ctx.telegram.editMessageText(
-  //       ctx.chat.id,
-  //       thinkingMsg.message_id,
-  //       undefined,
-  //       "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-  //         "💎 Хочешь без ограничений? Подписка AI Tone Writer Premium — скоро!"
-  //     );
-  //     log(`Пользователь ${userId} достиг лимита.`);
-  //     return;
-  //   }
-
-  //   const result = response.data.result;
-  //   const usageCount = response.data.usageCount ?? "?";
-
-  //   await ctx.telegram.editMessageText(
-  //     ctx.chat.id,
-  //     thinkingMsg.message_id,
-  //     undefined,
-  //     `✨ Переписываю... (${usageCount}/5 попыток на сегодня)\n\n` +
-  //       `Вот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
-  //     { parse_mode: "Markdown" }
-  //   );
-
-  //   log(`User ${userId} rewrote text in ${tone} tone (${usageCount}/5)`);
-
-  //   userMessages.delete(userId);
-  // } catch (err: any) {
-  //   console.error(err);
-  //   await ctx.telegram.editMessageText(
-  //     ctx.chat.id,
-  //     thinkingMsg.message_id,
-  //     undefined,
-  //     "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
-  //   );
-  // }
 });
 
 // 🎨 Словарь стилей
