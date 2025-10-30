@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "concurrently \"npx ts-node-dev src/index.ts\" \"npx ts-node-dev src/bot/index.ts\""
+    "start": "concurrently \"npx ts-node-dev src/index.ts\" \"npx ts-node-dev src/bot/index.ts\"",
+    "prisma:studio": "DATABASE_URL=\"file:./src/db/dev.db\" prisma studio",
+    "limit:reset": "npx ts-node-dev --transpile-only src/scripts/resetUsageNow.ts"
+  },
+  "prisma": {
+    "schema": "src/db/schema.prisma"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +19,7 @@
     "axios": "^1.13.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "node-cron": "^4.2.1",
     "openai": "^6.7.0",
     "prisma": "^6.18.0",
     "telegraf": "^4.16.3",
