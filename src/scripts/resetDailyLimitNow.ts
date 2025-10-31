@@ -2,7 +2,7 @@ import { prisma } from "../db/client";
 import { log } from "../utils/logger";
 
 async function main(): Promise<void> {
-  await prisma.user.updateMany({ data: { usageCount: 0 } });
+  await prisma.user.updateMany({ data: { dailyLimit: 5 } });
   log("🔁 Разовый сброс лимитов завершён");
 }
 
