@@ -28,7 +28,7 @@ export async function addReferral(inviterId: string, invitedId: string) {
     // добавляем +2 попытки
     await prisma.user.update({
       where: { telegramId: inviterId },
-      data: { usageCount: { increment: 2 } },
+      data: { dailyLimit: { increment: 2 } },
     });
 
     log(`🎁 Referral: ${inviterId} пригласил ${invitedId} (+2 попытки)`);

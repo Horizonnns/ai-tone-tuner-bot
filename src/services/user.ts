@@ -7,16 +7,3 @@ export async function getOrCreateUser(telegramId: string) {
   }
   return user;
 }
-
-export async function incrementUsage(telegramId: string) {
-  const user = await getOrCreateUser(telegramId);
-  if (user.isPremium) return true;
-
-  if (user.usageCount >= 5) return false;
-
-  await prisma.user.update({
-    where: { telegramId },
-    data: { usageCount: { increment: 1 }, lastUsedAt: new Date() },
-  });
-  return true;
-}

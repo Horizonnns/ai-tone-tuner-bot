@@ -2,7 +2,7 @@ import express from "express";
 import paymentsRouter from "./routes/payments";
 import { router as rewriteRouter } from "./routes/rewrite";
 
-import { initScheduler } from "./scheduler/resetUsage";
+import { initScheduler } from "./scheduler/resetDailyLimit";
 import dotenv from "dotenv";
 
 dotenv.config();
