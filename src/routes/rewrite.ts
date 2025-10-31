@@ -12,6 +12,17 @@ router.post("/rewrite", async (req, res) => {
     }
 
     const user = await getOrCreateUser(telegramId);
+
+    if (user.isPremium) {
+      const rewritten = await rewriteText(text, tone);
+      return res.json({
+        result: rewritten,
+        usageCount: "∞",
+        isPremium: true,
+        message: "Premium user — no limits",
+      });
+    }
+
     const allowed = await incrementUsage(telegramId);
     if (!allowed) {
       return res.status(403).json({ message: "Достигнут лимит 5 текстов" });
@@ -20,7 +31,7 @@ router.post("/rewrite", async (req, res) => {
     const rewritten = await rewriteText(text, tone);
     const updatedUser = await getOrCreateUser(telegramId);
 
-    res.json({ result: rewritten, usageCount: updatedUser.usageCount });
+    res.json({ result: rewritten, usageCount: updatedUser.usageCount, isPremium: false });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
