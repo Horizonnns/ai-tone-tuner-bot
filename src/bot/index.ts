@@ -120,7 +120,7 @@ bot.action(/tone_(.+)/, async (ctx) => {
       telegramId: String(userId),
     });
 
-    const { result, remaining, isPremium, message } = response.data;
+    const { result, remaining, initialLimit, isPremium, message } = response.data;
 
     if (response.status === 403 || message?.includes("Достигнут лимит")) {
       await ctx.telegram.editMessageText(
@@ -136,7 +136,9 @@ bot.action(/tone_(.+)/, async (ctx) => {
 
     let prefixMsg = "✨ Переписываю...";
     if (!isPremium && remaining !== "∞") {
-      prefixMsg += ` (${remaining}/5 попыток на сегодня)`;
+      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+      const used = totalLimit - remaining;
+      prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
     }
 
     await ctx.telegram.editMessageText(
@@ -147,7 +149,9 @@ bot.action(/tone_(.+)/, async (ctx) => {
       { parse_mode: "Markdown" }
     );
 
-    log(`User ${userId} rewrote text in ${tone} tone (${remaining}/5)`);
+    const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+    const used = remaining !== "∞" ? totalLimit - remaining : 0;
+    log(`User ${userId} rewrote text in ${tone} tone (${used}/${totalLimit})`);
     userMessages.delete(userId);
   } catch (err: any) {
     logError(`Ошибка при переписывании: ${err.message}`);

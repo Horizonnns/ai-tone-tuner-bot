@@ -10,6 +10,8 @@ package-lock.json
 /src/db/dev.db
 /src/db/*.db-journal
 /src/db/migrations
+/src/db/migration_lock.toml
+
 
 # Logs
 logs.txt

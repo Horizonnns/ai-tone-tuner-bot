@@ -37,6 +37,15 @@ router.post("/rewrite", async (req, res) => {
     // ✍️ Переписываем текст
     const rewritten = await rewriteText(text, tone);
 
+    // Вычисляем начальный общий лимит: базовый (5) + реферальные попытки за сегодня
+    // Это нужно для корректного отображения прогресса (1/5, 2/5, 3/5...) с постоянным знаменателем
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const referralsCount = await prisma.referral.count({
+      where: { inviterId: telegramId, createdAt: { gte: todayStart } },
+    });
+    const totalLimit = 5 + referralsCount * 2;
+
     // 🔻 Уменьшаем лимит на 1
     const updatedUser = await prisma.user.update({
       where: { telegramId },
@@ -46,6 +55,7 @@ router.post("/rewrite", async (req, res) => {
     return res.json({
       result: rewritten,
       remaining: updatedUser.dailyLimit,
+      initialLimit: totalLimit,
       isPremium: false,
       message: `Осталось ${updatedUser.dailyLimit} попыток`,
     });
