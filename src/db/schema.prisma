@@ -10,7 +10,7 @@ datasource db {
 model User {
   id           Int      @id @default(autoincrement())
   telegramId   String?  @unique
-  usageCount   Int      @default(0)
+  dailyLimit   Int      @default(5)
   lastUsedAt   DateTime @default(now())
   isPremium    Boolean  @default(false)
 }
