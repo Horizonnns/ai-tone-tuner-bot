@@ -15,40 +15,17 @@ const BACKEND_URL = process.env.BACKEND_URL;
 setupInline(bot);
 // setupPremium(bot);
 
+// 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
-  const url = `${process.env.YOOKASSA_URL}/api/payments/create?telegramId=${ctx.from.id}`;
+  const url = `${process.env.BACKEND_URL}/api/payments/create?telegramId=${ctx.from.id}`;
+
   await ctx.reply(
     "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
       "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
       "Стоимость: *199₽* 💰",
-    {
-      reply_markup: { inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url }]] },
-    }
+    { reply_markup: { inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url }]] } }
   );
 });
-
-// 💎 Команда /premium — теперь с оплатой
-// bot.command("premium", async (ctx) => {
-//   const telegramId = String(ctx.from.id);
-//   const yooKassaUrl = process.env.YOOKASSA_URL;
-
-//   await ctx.reply(
-//     "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
-//       "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
-//       "Стоимость: *199₽* 💰",
-//     {
-//       parse_mode: "Markdown",
-//       ...Markup.inlineKeyboard([
-//         [
-//           Markup.button.url(
-//             "💳 Купить Premium — 199₽",
-//             `${yooKassaUrl}/api/payments/create?telegramId=${telegramId}`
-//           ),
-//         ],
-//       ]),
-//     }
-//   );
-// });
 
 // Простая память для последних сообщений
 const userMessages = new Map<number, string>();
