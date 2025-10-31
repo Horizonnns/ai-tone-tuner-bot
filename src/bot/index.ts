@@ -1,17 +1,54 @@
 import { Telegraf, Markup } from "telegraf";
 import axios from "axios";
 import dotenv from "dotenv";
-import { log } from "../utils/logger";
+import { log, logError } from "../utils/logger";
+import { setupInline } from "./inline";
+import { setupPremium } from "./premium";
+import { addReferral, generateReferralLink } from "../services/referral";
+import { prisma } from "../db/client";
+
 dotenv.config();
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
 const API_URL = process.env.API_URL || "http://localhost:4000/api/rewrite";
 
+setupInline(bot);
+setupPremium(bot);
+
 // Простая память для последних сообщений
 const userMessages = new Map<number, string>();
 
+// 🧩 Вспомогательная функция получения юзера
+async function getUser(telegramId: string) {
+  let user = await prisma.user.findUnique({ where: { telegramId } });
+  if (!user) {
+    user = await prisma.user.create({ data: { telegramId } });
+    log(`Создан новый пользователь: ${telegramId}`);
+  }
+  return user;
+}
+
 // 👋 /start
 bot.start(async (ctx) => {
+  const args = ctx.message.text.split(" ");
+  const inviterId = args[1];
+  const userId = ctx.from.id.toString();
+
+  // Добавляем в базу нового пользователя
+  await getUser(userId);
+
+  // Реферальная логика
+  if (inviterId && inviterId !== userId) {
+    await addReferral(inviterId, userId);
+  }
+
+  const link = generateReferralLink(userId);
+
+  await ctx.reply(
+    `👋 Привет, ${ctx.from.first_name}!\n\n` +
+      `Поделись этой ссылкой с друзьями и получи +2 попытки за каждого: ${link}`
+  );
+
   await ctx.replyWithMarkdownV2(
     `Привет, ${ctx.from.first_name}\\! 👋
 Я *AI Tone Writer* — твой редактор настроения\\. 💫
@@ -19,6 +56,7 @@ bot.start(async (ctx) => {
 Напиши, например:
 _"Нужен React\\-разработчик"_`
   );
+
   log(`Пользователь ${ctx.from.id} запустил бота`);
 });
 
@@ -44,7 +82,6 @@ bot.action(/tone_(.+)/, async (ctx) => {
   const userId = ctx.from.id;
   const originalText = userMessages.get(userId);
 
-  // Удаляем кнопки после выбора
   try {
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
   } catch {}
@@ -54,7 +91,6 @@ bot.action(/tone_(.+)/, async (ctx) => {
     return;
   }
 
-  // Показать “переписываю...”
   const thinkingMsg = await ctx.reply("✨ Переписываю...");
   await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
@@ -65,10 +101,9 @@ bot.action(/tone_(.+)/, async (ctx) => {
       telegramId: String(userId),
     });
 
-    if (
-      response.status === 403 ||
-      response.data?.message?.includes("Достигнут лимит")
-    ) {
+    const { result, usageCount, isPremium, message } = response.data;
+
+    if (response.status === 403 || message?.includes("Достигнут лимит")) {
       await ctx.telegram.editMessageText(
         ctx.chat.id,
         thinkingMsg.message_id,
@@ -76,44 +111,37 @@ bot.action(/tone_(.+)/, async (ctx) => {
         "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
           "💎 Хочешь без ограничений? Подписка AI Tone Writer Premium — скоро!"
       );
-      log(`Пользователь ${userId} достиг лимита (403).`);
+      log(`Пользователь ${userId} достиг лимита (403)`);
       return;
     }
 
-    const result = response.data.result;
-    const usageCount = response.data.usageCount ?? "?";
+    let prefixMsg = "✨ Переписываю...";
+    if (!isPremium && usageCount !== "∞") {
+      prefixMsg += ` (${usageCount}/5 попыток на сегодня)`;
+    }
 
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
-      `✨ Переписываю... (${usageCount}/5 попыток на сегодня)\n\n` +
-        `Вот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
+      `${prefixMsg}\n\nВот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
       { parse_mode: "Markdown" }
     );
 
     log(`User ${userId} rewrote text in ${tone} tone (${usageCount}/5)`);
-
     userMessages.delete(userId);
   } catch (err: any) {
-    console.error(err);
-
-    // если сервер прислал 403, отразим красиво
-    if (
-      err.response?.status === 403 &&
-      err.response?.data?.message?.includes("Достигнут лимит")
-    ) {
+    logError(`Ошибка при переписывании: ${err.message}`);
+    if (err.response?.status === 403) {
       await ctx.telegram.editMessageText(
         ctx.chat.id,
         thinkingMsg.message_id,
         undefined,
         "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪"
       );
-      log(`Пользователь ${userId} достиг лимита (catch)`);
       return;
     }
 
-    // иначе — общая ошибка
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
