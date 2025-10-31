@@ -1,19 +1,54 @@
+import { YooKassa } from "yookassa";
 import { Telegraf, Markup } from "telegraf";
 import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
 import { setupInline } from "./inline";
-import { setupPremium } from "./premium";
+// import { setupPremium } from "./premium";
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
 
 dotenv.config();
-
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
-const API_URL = process.env.API_URL || "http://localhost:4000/api/rewrite";
+const BACKEND_URL = process.env.BACKEND_URL;
 
 setupInline(bot);
-setupPremium(bot);
+// setupPremium(bot);
+
+bot.command("premium", async (ctx) => {
+  const url = `${process.env.YOOKASSA_URL}/api/payments/create?telegramId=${ctx.from.id}`;
+  await ctx.reply(
+    "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
+      "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
+      "Стоимость: *199₽* 💰",
+    {
+      reply_markup: { inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url }]] },
+    }
+  );
+});
+
+// 💎 Команда /premium — теперь с оплатой
+// bot.command("premium", async (ctx) => {
+//   const telegramId = String(ctx.from.id);
+//   const yooKassaUrl = process.env.YOOKASSA_URL;
+
+//   await ctx.reply(
+//     "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
+//       "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
+//       "Стоимость: *199₽* 💰",
+//     {
+//       parse_mode: "Markdown",
+//       ...Markup.inlineKeyboard([
+//         [
+//           Markup.button.url(
+//             "💳 Купить Premium — 199₽",
+//             `${yooKassaUrl}/api/payments/create?telegramId=${telegramId}`
+//           ),
+//         ],
+//       ]),
+//     }
+//   );
+// });
 
 // Простая память для последних сообщений
 const userMessages = new Map<number, string>();
@@ -95,7 +130,7 @@ bot.action(/tone_(.+)/, async (ctx) => {
   await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
   try {
-    const response = await axios.post(API_URL, {
+    const response = await axios.post(`${BACKEND_URL}/rewrite`, {
       text: originalText,
       tone,
       telegramId: String(userId),
