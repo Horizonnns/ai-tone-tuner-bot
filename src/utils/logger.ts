@@ -1,9 +1,19 @@
-import fs from "fs";
-import path from "path";
+import winston from "winston";
 
-export function log(message: string) {
-  const logMessage = `[${new Date().toISOString()}] ${message}\n`;
-  console.log(logMessage.trim());
-  const logPath = path.join(process.cwd(), "logs.txt");
-  fs.appendFileSync(logPath, logMessage);
-}
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+    })
+  ),
+  transports: [
+    new winston.transports.File({ filename: "logs/app.log" }),
+    new winston.transports.Console(),
+  ],
+});
+
+export const log = (message: string) => {
+  logger.info(message);
+};
