@@ -38,5 +38,5 @@ export async function addReferral(inviterId: string, invitedId: string) {
 }
 
 export function generateReferralLink(telegramId: string) {
-  return `https://t.me/AIToneWriterBot?start=${telegramId}`;
+  return `https://t.me/ai_tone_writer_bot?start=${telegramId}`;
 }
