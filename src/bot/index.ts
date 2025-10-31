@@ -1,10 +1,9 @@
-import { YooKassa } from "yookassa";
 import { Telegraf, Markup } from "telegraf";
 import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
 import { setupInline } from "./inline";
-// import { setupPremium } from "./premium";
+
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
 
@@ -13,7 +12,6 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
 const BACKEND_URL = process.env.BACKEND_URL;
 
 setupInline(bot);
-// setupPremium(bot);
 
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
@@ -51,7 +49,16 @@ bot.start(async (ctx) => {
 
   // Реферальная логика
   if (inviterId && inviterId !== userId) {
+    await getUser(inviterId);
     await addReferral(inviterId, userId);
+
+    const inviter = await prisma.user.findUnique({ where: { telegramId: inviterId } });
+    if (inviter) {
+      await bot.telegram.sendMessage(
+        inviterId,
+        `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
+      );
+    }
   }
 
   const link = generateReferralLink(userId);
@@ -113,7 +120,7 @@ bot.action(/tone_(.+)/, async (ctx) => {
       telegramId: String(userId),
     });
 
-    const { result, usageCount, isPremium, message } = response.data;
+    const { result, remaining, isPremium, message } = response.data;
 
     if (response.status === 403 || message?.includes("Достигнут лимит")) {
       await ctx.telegram.editMessageText(
@@ -128,8 +135,8 @@ bot.action(/tone_(.+)/, async (ctx) => {
     }
 
     let prefixMsg = "✨ Переписываю...";
-    if (!isPremium && usageCount !== "∞") {
-      prefixMsg += ` (${usageCount}/5 попыток на сегодня)`;
+    if (!isPremium && remaining !== "∞") {
+      prefixMsg += ` (${remaining}/5 попыток на сегодня)`;
     }
 
     await ctx.telegram.editMessageText(
@@ -140,7 +147,7 @@ bot.action(/tone_(.+)/, async (ctx) => {
       { parse_mode: "Markdown" }
     );
 
-    log(`User ${userId} rewrote text in ${tone} tone (${usageCount}/5)`);
+    log(`User ${userId} rewrote text in ${tone} tone (${remaining}/5)`);
     userMessages.delete(userId);
   } catch (err: any) {
     logError(`Ошибка при переписывании: ${err.message}`);
