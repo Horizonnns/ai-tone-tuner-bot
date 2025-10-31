@@ -14,3 +14,10 @@ model User {
   lastUsedAt   DateTime @default(now())
   isPremium    Boolean  @default(false)
 }
+
+model Referral {
+  id          Int      @id @default(autoincrement())
+  inviterId   String
+  invitedId   String
+  createdAt   DateTime @default(now())
+}
