@@ -21,3 +21,13 @@ model Referral {
   invitedId   String
   createdAt   DateTime @default(now())
 }
+
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  telegramId  String
+  paymentId   String
+  status      String
+  amount      Int
+  createdAt   DateTime @default(now())
+}
