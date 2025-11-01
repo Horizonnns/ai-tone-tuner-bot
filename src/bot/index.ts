@@ -70,7 +70,14 @@ bot.start(async (ctx) => {
 
   await ctx.reply(
     `👋 Привет, ${ctx.from.first_name}!\n\n` +
-      `Поделись этой ссылкой с друзьями и получи +2 попытки за каждого: ${link}`
+      `Поделись ссылкой с друзьями и получи +2 попытки за каждого!`,
+
+    Markup.inlineKeyboard([
+      Markup.button.url(
+        "📤 Поделится",
+        `https://t.me/share/url?url=${encodeURIComponent(link)}`
+      ),
+    ])
   );
 
   await ctx.replyWithMarkdownV2(
@@ -192,5 +199,4 @@ function toneLabel(key: string) {
 
 // 🚀 Запуск
 bot.launch();
-console.log("🤖 Telegram бот запущен!");
-log("Бот успешно запущен");
+log("🤖 Telegram бот запущен!");
