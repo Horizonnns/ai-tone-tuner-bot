@@ -9,7 +9,8 @@
     "db:reset": "DATABASE_URL=\"file:dev.db\" npx prisma migrate reset --force --skip-seed && prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:studio": "DATABASE_URL=\"file:dev.db\" prisma studio",
-    "limit:reset": "npx ts-node-dev --transpile-only src/scripts/resetDailyLimitNow.ts"
+    "limit:reset": "npx ts-node-dev --transpile-only src/scripts/resetDailyLimitNow.ts",
+    "cron:test": "TEST_CRON_INTERVAL=\"*/1 * * * *\" npx ts-node-dev src/index.ts"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
