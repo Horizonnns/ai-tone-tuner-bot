@@ -50,14 +50,19 @@ bot.start(async (ctx) => {
   // Реферальная логика
   if (inviterId && inviterId !== userId) {
     await getUser(inviterId);
-    await addReferral(inviterId, userId);
+    const referralCreated = await addReferral(inviterId, userId);
 
-    const inviter = await prisma.user.findUnique({ where: { telegramId: inviterId } });
-    if (inviter) {
-      await bot.telegram.sendMessage(
-        inviterId,
-        `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
-      );
+    // Отправляем уведомление только если реферал был создан впервые
+    if (referralCreated) {
+      const inviter = await prisma.user.findUnique({
+        where: { telegramId: inviterId },
+      });
+      if (inviter) {
+        await bot.telegram.sendMessage(
+          inviterId,
+          `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
+        );
+      }
     }
   }
 

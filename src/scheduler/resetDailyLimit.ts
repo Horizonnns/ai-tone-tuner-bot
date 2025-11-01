@@ -11,15 +11,29 @@ async function resetDailyLimit() {
   try {
     log(`🔄 Начало сброса дневных лимитов (${startTime.toISOString()})`);
 
-    const result = await prisma.user.updateMany({
-      data: { dailyLimit: 5 },
-    });
+    // Получаем всех пользователей
+    const users = await prisma.user.findMany();
+
+    // Для каждого пользователя считаем его реферальные бонусы
+    for (const user of users) {
+      if (!user.telegramId) continue;
+
+      const referralsCount = await prisma.referral.count({
+        where: { inviterId: user.telegramId },
+      });
+      const newLimit = 5 + referralsCount * 2;
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { dailyLimit: newLimit },
+      });
+    }
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
 
     log(
-      `✅ Сброс лимитов завершён: обновлено ${result.count} пользователей ` +
+      `✅ Сброс лимитов завершён: обновлено ${users.length} пользователей ` +
         `(за ${duration}мс)`
     );
   } catch (error) {
