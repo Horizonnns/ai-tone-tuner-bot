@@ -15,14 +15,27 @@ setupInline(bot);
 
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
-  const url = `${process.env.BACKEND_URL}/api/payments/create?telegramId=${ctx.from.id}`;
+  const premiumUrl = `${process.env.BACKEND_URL}/payments/create?telegramId=${ctx.from.id}`;
 
-  await ctx.reply(
+  // Проверяем, является ли URL локальным (Telegram не принимает localhost в URL кнопок)
+  const isLocalhost =
+    premiumUrl.includes("localhost") || premiumUrl.includes("127.0.0.1");
+
+  const messageText =
     "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
-      "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
-      "Стоимость: *199₽* 💰",
-    { reply_markup: { inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url }]] } }
-  );
+    "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
+    "Стоимость: *199₽* 💰" +
+    (isLocalhost ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
+
+  const replyMarkup = isLocalhost
+    ? undefined
+    : {
+        reply_markup: {
+          inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url: premiumUrl }]],
+        },
+      };
+
+  await ctx.reply(messageText, replyMarkup);
 });
 
 // Простая память для последних сообщений
@@ -36,6 +49,45 @@ async function getUser(telegramId: string) {
     log(`Создан новый пользователь: ${telegramId}`);
   }
   return user;
+}
+
+// 🔍 Проверка, является ли ответ/ошибка ошибкой лимита
+function isLimitError(response?: any, error?: any): boolean {
+  return (
+    response?.status === 403 ||
+    response?.data?.message?.includes("Достигнут лимит") ||
+    error?.response?.status === 403
+  );
+}
+
+// 🔥 Обработка ошибки лимита (403) - показываем сообщение с кнопкой Premium
+async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
+  const premiumUrl = `${process.env.BACKEND_URL}/payments/create?telegramId=${ctx.from.id}`;
+
+  // Проверяем, является ли URL локальным (Telegram не принимает localhost в URL кнопок)
+  const isLocalhost =
+    premiumUrl.includes("localhost") || premiumUrl.includes("127.0.0.1");
+
+  const messageText =
+    "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
+    "💎 Хочешь без ограничений и новых стилей? Подключи Premium ✨" +
+    (isLocalhost ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
+
+  const replyMarkup = isLocalhost
+    ? undefined
+    : {
+        inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url: premiumUrl }]],
+      };
+
+  await ctx.telegram.editMessageText(
+    ctx.chat.id,
+    thinkingMsg.message_id,
+    undefined,
+    messageText,
+    replyMarkup ? { reply_markup: replyMarkup } : undefined
+  );
+
+  log(`Пользователь ${userId} достиг лимита (403)`);
 }
 
 // 👋 /start
@@ -134,15 +186,8 @@ bot.action(/tone_(.+)/, async (ctx) => {
 
     const { result, remaining, initialLimit, isPremium, message } = response.data;
 
-    if (response.status === 403 || message?.includes("Достигнут лимит")) {
-      await ctx.telegram.editMessageText(
-        ctx.chat.id,
-        thinkingMsg.message_id,
-        undefined,
-        "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-          "💎 Хочешь без ограничений? Подписка AI Tone Writer Premium — скоро!"
-      );
-      log(`Пользователь ${userId} достиг лимита (403)`);
+    if (isLimitError(response)) {
+      await handleLimitReached(ctx, thinkingMsg, userId);
       return;
     }
 
@@ -167,13 +212,9 @@ bot.action(/tone_(.+)/, async (ctx) => {
     userMessages.delete(userId);
   } catch (err: any) {
     logError(`Ошибка при переписывании: ${err.message}`);
-    if (err.response?.status === 403) {
-      await ctx.telegram.editMessageText(
-        ctx.chat.id,
-        thinkingMsg.message_id,
-        undefined,
-        "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪"
-      );
+
+    if (isLimitError(undefined, err)) {
+      await handleLimitReached(ctx, thinkingMsg, userId);
       return;
     }
 
