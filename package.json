@@ -7,7 +7,7 @@
     "dev": "npx ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate:dev": "npx prisma migrate dev --name init && npx prisma generate",
+    "migrate:dev": "npx prisma migrate dev",
     "migrate:deploy": "npx prisma migrate deploy",
     "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma generate",
     "prisma:generate": "npx prisma generate",
