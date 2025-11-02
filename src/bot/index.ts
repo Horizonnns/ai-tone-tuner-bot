@@ -236,7 +236,3 @@ function toneLabel(key: string) {
   };
   return map[key] || key;
 }
-
-// 🚀 Запуск
-bot.launch();
-log("🤖 Telegram бот запущен!");
