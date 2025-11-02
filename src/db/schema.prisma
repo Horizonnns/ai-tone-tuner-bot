@@ -13,6 +13,7 @@ model User {
   dailyLimit   Int      @default(5)
   lastUsedAt   DateTime @default(now())
   isPremium    Boolean  @default(false)
+  premiumUntil DateTime?
 }
 
 model Referral {
@@ -22,12 +23,12 @@ model Referral {
   createdAt   DateTime @default(now())
 }
 
-
 model Payment {
-  id          Int      @id @default(autoincrement())
-  telegramId  String
-  paymentId   String
-  status      String
-  amount      Int
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  paymentId  String   @unique
+  amount     Float
+  currency   String
+  status     String
+  createdAt  DateTime @default(now())
 }
