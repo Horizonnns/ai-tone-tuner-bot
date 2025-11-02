@@ -1,21 +1,30 @@
 {
   "name": "ai-tone-tuner-bot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
+  "description": "AI Tone Writer Telegram Bot with Express, Prisma, and YooKassa integration",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "concurrently \"npx ts-node-dev src/index.ts\" \"npx ts-node-dev src/bot/index.ts\"",
-    "migrate": "DATABASE_URL=\"file:dev.db\" npx prisma migrate dev --name init && prisma generate",
-    "db:reset": "DATABASE_URL=\"file:dev.db\" npx prisma migrate reset --force --skip-seed && prisma generate",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "DATABASE_URL=\"file:dev.db\" prisma studio",
-    "limit:reset": "npx ts-node-dev --transpile-only src/scripts/resetDailyLimitNow.ts",
-    "cron:test": "TEST_CRON_INTERVAL=\"*/1 * * * *\" npx ts-node-dev src/index.ts"
+    "dev": "npx ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "migrate:dev": "npx prisma migrate dev --name init && npx prisma generate",
+    "migrate:deploy": "npx prisma migrate deploy",
+    "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma generate",
+    "prisma:generate": "npx prisma generate",
+    "prisma:studio": "npx prisma studio",
+    "cron:test": "TEST_CRON_INTERVAL='*/1 * * * *' npx ts-node-dev src/index.ts"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
   },
-  "keywords": [],
+  "keywords": [
+    "telegram",
+    "express",
+    "ai",
+    "bot",
+    "openai",
+    "yookassa"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -26,15 +35,14 @@
     "node-cron": "^4.2.1",
     "openai": "^6.7.0",
     "telegraf": "^4.16.3",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3",
     "winston": "^3.18.3",
     "yookassa": "^0.1.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.5",
     "@types/node": "^24.9.1",
-    "concurrently": "^9.2.1",
-    "prisma": "^6.18.0"
+    "prisma": "^6.18.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }
