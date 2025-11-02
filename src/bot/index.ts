@@ -1,4 +1,4 @@
-import { Telegraf, Markup } from "telegraf";
+import { Markup } from "telegraf";
 import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
@@ -6,11 +6,10 @@ import { setupInline } from "./inline";
 
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
+import { bot } from "../bot/instance";
 
 dotenv.config();
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
 const BACKEND_URL = process.env.BACKEND_URL;
-
 setupInline(bot);
 
 // 💎 Команда /premium — теперь с оплатой
