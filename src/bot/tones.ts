@@ -44,5 +44,11 @@ export function buildToneKeyboard(mode: KeyboardMode = "collapsed") {
   const extra = TONES.slice(4).map((t) => [
     { text: t.label, callback_data: `tone_${t.key}` },
   ]);
-  return [...base, ...extra, [{ text: "⬅️ Меньше", callback_data: "tone_less" }]];
+
+  return [
+    ...base,
+    ...extra,
+    [{ text: "✏️ Свой стиль", callback_data: "tone_custom" }],
+    [{ text: "⬅️ Меньше", callback_data: "tone_less" }],
+  ];
 }

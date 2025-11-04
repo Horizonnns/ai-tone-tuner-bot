@@ -17,6 +17,11 @@ import {
   getUserMessage,
   deleteUserMessage,
 } from "../services/messageCache";
+import {
+  isAwaitingCustomTone,
+  setAwaitingCustomTone,
+  clearAwaitingCustomTone,
+} from "../services/userState";
 
 dotenv.config();
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -86,8 +91,75 @@ _"Нужен React\\-разработчик"_`
 // 💬 Принимаем текст
 bot.on("text", async (ctx) => {
   const text = ctx.message.text;
-  setUserMessage(ctx.from.id, text);
+  const userId = ctx.from.id;
 
+  if (isAwaitingCustomTone(userId)) {
+    const originalText = getUserMessage(userId);
+    const tone = text.trim();
+
+    clearAwaitingCustomTone(userId);
+
+    if (!originalText) {
+      await ctx.reply("Сначала отправь текст, затем выбери стиль 🙂");
+      return;
+    }
+
+    const thinkingMsg = await ctx.reply("✨ Переписываю...");
+    await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+
+    try {
+      const response = await axios.post(`${BACKEND_URL}/rewrite`, {
+        text: originalText,
+        tone,
+        telegramId: String(userId),
+      });
+
+      const { result, remaining, initialLimit, isPremium } = response.data;
+
+      if (isLimitError(response)) {
+        await handleLimitReached(ctx, thinkingMsg, userId);
+        return;
+      }
+
+      let prefixMsg = "✨ Переписываю...";
+      if (!isPremium && remaining !== "∞") {
+        const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+        const used = totalLimit - remaining;
+        prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
+      }
+
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        `${prefixMsg}\n\nВот твой текст в стиле *${tone}*:\n\n${result}`,
+        { parse_mode: "Markdown" }
+      );
+
+      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+      const used = remaining !== "∞" ? totalLimit - remaining : 0;
+      log(`User ${userId} rewrote text in custom tone "${tone}" (${used}/${totalLimit})`);
+      deleteUserMessage(userId);
+    } catch (err: any) {
+      logError(`Ошибка при переписывании (custom tone): ${err.message}`);
+
+      if (isLimitError(undefined, err)) {
+        await handleLimitReached(ctx, thinkingMsg, userId);
+        return;
+      }
+
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
+      );
+    }
+
+    return;
+  }
+
+  setUserMessage(userId, text);
   await ctx.reply("Выбери стиль, в котором переписать:", {
     reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
   });
@@ -163,7 +235,17 @@ bot.action(
     }
   }
 );
-// Показать дополнительные тона
+
+bot.action("tone_custom", async (ctx) => {
+  try {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+  } catch {}
+  setAwaitingCustomTone(ctx.from.id, true);
+  await ctx.reply(
+    "Напиши стиль/тон, в котором переписать (пример: 'лаконичный официальный')"
+  );
+});
+
 bot.action("tone_more", async (ctx) => {
   try {
     await ctx.editMessageReplyMarkup({ inline_keyboard: buildToneKeyboard("expanded") });
