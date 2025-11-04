@@ -1,9 +1,8 @@
 import { Telegraf } from "telegraf";
-import OpenAI from "openai";
 import dotenv from "dotenv";
+import { openaiClient } from "../services/openaiClient";
+import { buildRewriteMessages } from "../services/prompt";
 dotenv.config();
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY! });
 
 export function setupInline(bot: Telegraf) {
   bot.on("inline_query", async (ctx) => {
@@ -11,19 +10,10 @@ export function setupInline(bot: Telegraf) {
     if (!query) return;
 
     try {
-      const completion = await openai.chat.completions.create({
+      const messages = buildRewriteMessages(query, "friendly");
+      const completion = await openaiClient.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Ты гуру по смену тона в тексте. Тебе дадут текст, ты его переписываешь в нужном формате",
-          },
-          {
-            role: "user",
-            content: `Перепиши текст в дружелюбном и лёгком тоне:\n\n${query}`,
-          },
-        ],
+        messages,
       });
 
       let result = completion.choices[0].message?.content || "Не удалось 😅";
