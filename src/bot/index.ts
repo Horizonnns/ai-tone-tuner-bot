@@ -3,6 +3,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
 import { setupInline } from "./inline";
+import { TONES, toneLabel } from "./tones";
 
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
@@ -149,12 +150,9 @@ bot.on("text", async (ctx) => {
 
   await ctx.reply(
     "Выбери стиль, в котором переписать:",
-    Markup.inlineKeyboard([
-      [Markup.button.callback("💼 Деловой", "tone_business")],
-      [Markup.button.callback("💬 Дружелюбный", "tone_friendly")],
-      [Markup.button.callback("🚀 Хайповый", "tone_hype")],
-      [Markup.button.callback("✨ Вдохновляющий", "tone_inspire")],
-    ])
+    Markup.inlineKeyboard(
+      TONES.map((t) => [Markup.button.callback(t.label, `tone_${t.key}`)])
+    )
   );
 });
 
@@ -225,14 +223,3 @@ bot.action(/tone_(.+)/, async (ctx) => {
     );
   }
 });
-
-// 🎨 Словарь стилей
-function toneLabel(key: string) {
-  const map: Record<string, string> = {
-    business: "💼 деловой профессиональный стиль",
-    friendly: "💬 дружелюбный лёгкий тон",
-    hype: "🚀 современный и хайповый стиль",
-    inspire: "✨ вдохновляющий стиль",
-  };
-  return map[key] || key;
-}
