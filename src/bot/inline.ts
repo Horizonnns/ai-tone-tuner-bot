@@ -15,6 +15,11 @@ export function setupInline(bot: Telegraf) {
         model: "gpt-4o-mini",
         messages: [
           {
+            role: "system",
+            content:
+              "Ты гуру по смену тона в тексте. Тебе дадут текст, ты его переписываешь в нужном формате",
+          },
+          {
             role: "user",
             content: `Перепиши текст в дружелюбном и лёгком тоне:\n\n${query}`,
           },
