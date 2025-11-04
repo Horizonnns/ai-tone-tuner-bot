@@ -3,13 +3,20 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
 import { setupInline } from "./inline";
-import { TONES, toneLabel } from "./tones";
+import { toneLabel, buildToneKeyboard } from "./tones";
 
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
 import { getOrCreateUser } from "../services/user";
-import { buildPremiumUrl, isLocalhostUrl, premiumReplyMarkup } from "../utils/telegram";
+import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
+import { premiumOfferText } from "../utils/texts";
+import { handleLimitReached, isLimitError } from "./helpers";
+import {
+  setUserMessage,
+  getUserMessage,
+  deleteUserMessage,
+} from "../services/messageCache";
 
 dotenv.config();
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -18,56 +25,14 @@ setupInline(bot);
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
   const premiumUrl = buildPremiumUrl(ctx.from.id);
-  const isLocal = isLocalhostUrl(premiumUrl);
-  const messageText =
-    "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
-    "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
-    "Стоимость: *199₽* 💰" +
-    (isLocal ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
-
-  await ctx.reply(messageText, premiumReplyMarkup(premiumUrl));
+  await ctx.reply(premiumOfferText(premiumUrl), premiumReplyMarkup(premiumUrl));
 });
-
-// Простая память для последних сообщений
-const userMessages = new Map<number, string>();
 
 async function getUser(telegramId: string) {
   const user = await getOrCreateUser(telegramId);
   return user;
 }
 
-// 🔍 Проверка, является ли ответ/ошибка ошибкой лимита
-function isLimitError(response?: any, error?: any): boolean {
-  return (
-    response?.status === 403 ||
-    response?.data?.message?.includes("Достигнут лимит") ||
-    error?.response?.status === 403
-  );
-}
-
-// 🔥 Обработка ошибки лимита (403) - показываем сообщение с кнопкой Premium
-async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
-  const premiumUrl = buildPremiumUrl(ctx.from.id);
-  const isLocalhost = isLocalhostUrl(premiumUrl);
-  const messageText =
-    "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-    "💎 Хочешь без ограничений и новых стилей? Подключи Premium ✨" +
-    (isLocalhost ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
-
-  const replyMarkup = premiumReplyMarkup(premiumUrl);
-
-  await ctx.telegram.editMessageText(
-    ctx.chat.id,
-    thinkingMsg.message_id,
-    undefined,
-    messageText,
-    replyMarkup ? { reply_markup: replyMarkup.reply_markup } : undefined
-  );
-
-  log(`Пользователь ${userId} достиг лимита (403)`);
-}
-
-// 👋 /start
 bot.start(async (ctx) => {
   const args = ctx.message.text.split(" ");
   const inviterId = args[1];
@@ -83,9 +48,7 @@ bot.start(async (ctx) => {
 
     // Отправляем уведомление только если реферал был создан впервые
     if (referralCreated) {
-      const inviter = await prisma.user.findUnique({
-        where: { telegramId: inviterId },
-      });
+      const inviter = await prisma.user.findUnique({ where: { telegramId: inviterId } });
       if (inviter) {
         await bot.telegram.sendMessage(
           inviterId,
@@ -123,21 +86,18 @@ _"Нужен React\\-разработчик"_`
 // 💬 Принимаем текст
 bot.on("text", async (ctx) => {
   const text = ctx.message.text;
-  userMessages.set(ctx.from.id, text);
+  setUserMessage(ctx.from.id, text);
 
-  await ctx.reply(
-    "Выбери стиль, в котором переписать:",
-    Markup.inlineKeyboard(
-      TONES.map((t) => [Markup.button.callback(t.label, `tone_${t.key}`)])
-    )
-  );
+  await ctx.reply("Выбери стиль, в котором переписать:", {
+    reply_markup: { inline_keyboard: buildToneKeyboard() },
+  });
 });
 
 // ⚙️ Обработка выбора стиля
 bot.action(/tone_(.+)/, async (ctx) => {
   const tone = ctx.match[1];
   const userId = ctx.from.id;
-  const originalText = userMessages.get(userId);
+  const originalText = getUserMessage(userId);
 
   try {
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
@@ -183,7 +143,7 @@ bot.action(/tone_(.+)/, async (ctx) => {
     const totalLimit = initialLimit !== undefined ? initialLimit : 5;
     const used = remaining !== "∞" ? totalLimit - remaining : 0;
     log(`User ${userId} rewrote text in ${tone} tone (${used}/${totalLimit})`);
-    userMessages.delete(userId);
+    deleteUserMessage(userId);
   } catch (err: any) {
     logError(`Ошибка при переписывании: ${err.message}`);
 
