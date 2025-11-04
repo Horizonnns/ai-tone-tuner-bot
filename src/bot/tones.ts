@@ -21,3 +21,7 @@ export function toneLabel(key: string): string {
   };
   return map[key] || key;
 }
+
+export function buildToneKeyboard() {
+  return TONES.map((t) => [{ text: t.label, callback_data: `tone_${t.key}` }]);
+}
