@@ -1,4 +1,10 @@
-export type TToneKey = "business" | "friendly" | "hype" | "inspire";
+export type TToneKey =
+  | "business"
+  | "friendly"
+  | "hype"
+  | "inspire"
+  | "persuasive"
+  | "humorous";
 
 export interface IToneOption {
   key: TToneKey;
@@ -10,6 +16,8 @@ export const TONES: IToneOption[] = [
   { key: "friendly", label: "💬 Дружелюбный" },
   { key: "hype", label: "🚀 Хайповый" },
   { key: "inspire", label: "✨ Вдохновляющий" },
+  { key: "persuasive", label: "🧠 Убедительный" },
+  { key: "humorous", label: "😄 С юмором" },
 ];
 
 export function toneLabel(key: string): string {
@@ -18,10 +26,23 @@ export function toneLabel(key: string): string {
     friendly: "💬 дружелюбный лёгкий тон",
     hype: "🚀 современный и хайповый стиль",
     inspire: "✨ вдохновляющий стиль",
+    persuasive: "🧠 убедительный тон",
+    humorous: "😄 с юмором",
   };
   return map[key] || key;
 }
 
-export function buildToneKeyboard() {
-  return TONES.map((t) => [{ text: t.label, callback_data: `tone_${t.key}` }]);
+export type KeyboardMode = "collapsed" | "expanded";
+
+export function buildToneKeyboard(mode: KeyboardMode = "collapsed") {
+  const base = TONES.slice(0, 4).map((t) => [
+    { text: t.label, callback_data: `tone_${t.key}` },
+  ]);
+  if (mode === "collapsed") {
+    return [...base, [{ text: "➕ Ещё стили", callback_data: "tone_more" }]];
+  }
+  const extra = TONES.slice(4).map((t) => [
+    { text: t.label, callback_data: `tone_${t.key}` },
+  ]);
+  return [...base, ...extra, [{ text: "⬅️ Меньше", callback_data: "tone_less" }]];
 }

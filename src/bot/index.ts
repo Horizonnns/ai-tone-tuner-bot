@@ -89,74 +89,90 @@ bot.on("text", async (ctx) => {
   setUserMessage(ctx.from.id, text);
 
   await ctx.reply("Выбери стиль, в котором переписать:", {
-    reply_markup: { inline_keyboard: buildToneKeyboard() },
+    reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
   });
 });
 
 // ⚙️ Обработка выбора стиля
-bot.action(/tone_(.+)/, async (ctx) => {
-  const tone = ctx.match[1];
-  const userId = ctx.from.id;
-  const originalText = getUserMessage(userId);
+bot.action(
+  /^(?:tone_(business|friendly|hype|inspire|persuasive|humorous))$/,
+  async (ctx) => {
+    const tone = ctx.match[1];
+    const userId = ctx.from.id;
+    const originalText = getUserMessage(userId);
 
-  try {
-    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
-  } catch {}
+    try {
+      await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+    } catch {}
 
-  if (!originalText) {
-    await ctx.reply("Отправь текст сначала 🙂");
-    return;
-  }
-
-  const thinkingMsg = await ctx.reply("✨ Переписываю...");
-  await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
-
-  try {
-    const response = await axios.post(`${BACKEND_URL}/rewrite`, {
-      text: originalText,
-      tone,
-      telegramId: String(userId),
-    });
-
-    const { result, remaining, initialLimit, isPremium, message } = response.data;
-
-    if (isLimitError(response)) {
-      await handleLimitReached(ctx, thinkingMsg, userId);
+    if (!originalText) {
+      await ctx.reply("Отправь текст сначала 🙂");
       return;
     }
 
-    let prefixMsg = "✨ Переписываю...";
-    if (!isPremium && remaining !== "∞") {
+    const thinkingMsg = await ctx.reply("✨ Переписываю...");
+    await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
+
+    try {
+      const response = await axios.post(`${BACKEND_URL}/rewrite`, {
+        text: originalText,
+        tone,
+        telegramId: String(userId),
+      });
+
+      const { result, remaining, initialLimit, isPremium, message } = response.data;
+
+      if (isLimitError(response)) {
+        await handleLimitReached(ctx, thinkingMsg, userId);
+        return;
+      }
+
+      let prefixMsg = "✨ Переписываю...";
+      if (!isPremium && remaining !== "∞") {
+        const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+        const used = totalLimit - remaining;
+        prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
+      }
+
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        `${prefixMsg}\n\nВот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
+        { parse_mode: "Markdown" }
+      );
+
       const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-      const used = totalLimit - remaining;
-      prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
+      const used = remaining !== "∞" ? totalLimit - remaining : 0;
+      log(`User ${userId} rewrote text in ${tone} tone (${used}/${totalLimit})`);
+      deleteUserMessage(userId);
+    } catch (err: any) {
+      logError(`Ошибка при переписывании: ${err.message}`);
+
+      if (isLimitError(undefined, err)) {
+        await handleLimitReached(ctx, thinkingMsg, userId);
+        return;
+      }
+
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        thinkingMsg.message_id,
+        undefined,
+        "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
+      );
     }
-
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      thinkingMsg.message_id,
-      undefined,
-      `${prefixMsg}\n\nВот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
-      { parse_mode: "Markdown" }
-    );
-
-    const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-    const used = remaining !== "∞" ? totalLimit - remaining : 0;
-    log(`User ${userId} rewrote text in ${tone} tone (${used}/${totalLimit})`);
-    deleteUserMessage(userId);
-  } catch (err: any) {
-    logError(`Ошибка при переписывании: ${err.message}`);
-
-    if (isLimitError(undefined, err)) {
-      await handleLimitReached(ctx, thinkingMsg, userId);
-      return;
-    }
-
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      thinkingMsg.message_id,
-      undefined,
-      "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
-    );
   }
+);
+// Показать дополнительные тона
+bot.action("tone_more", async (ctx) => {
+  try {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: buildToneKeyboard("expanded") });
+  } catch {}
+});
+
+// Свернуть дополнительные тона
+bot.action("tone_less", async (ctx) => {
+  try {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: buildToneKeyboard("collapsed") });
+  } catch {}
 });
