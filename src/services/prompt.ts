@@ -17,7 +17,7 @@ export function buildRewriteMessages(
     },
     {
       role: "user",
-      content: `Текст для переписывания: ${text}. Ответь только готовым текстом, без пояснений`,
+      content: `Текст для переписывания: ${text}`,
     },
   ];
 }
