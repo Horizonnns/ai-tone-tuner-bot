@@ -8,6 +8,8 @@ import { TONES, toneLabel } from "./tones";
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
+import { getOrCreateUser } from "../services/user";
+import { buildPremiumUrl, isLocalhostUrl, premiumReplyMarkup } from "../utils/telegram";
 
 dotenv.config();
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -15,39 +17,22 @@ setupInline(bot);
 
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
-  const premiumUrl = `${process.env.BACKEND_URL}/payments/create?telegramId=${ctx.from.id}`;
-
-  // Проверяем, является ли URL локальным (Telegram не принимает localhost в URL кнопок)
-  const isLocalhost =
-    premiumUrl.includes("localhost") || premiumUrl.includes("127.0.0.1");
-
+  const premiumUrl = buildPremiumUrl(ctx.from.id);
+  const isLocal = isLocalhostUrl(premiumUrl);
   const messageText =
     "💎 Хочешь безлимитные переписывания и эксклюзивные стили?\n\n" +
     "👉 Поддержи проект и получи *AI Tone Writer Premium* на 30 дней.\n\n" +
     "Стоимость: *199₽* 💰" +
-    (isLocalhost ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
+    (isLocal ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
 
-  const replyMarkup = isLocalhost
-    ? undefined
-    : {
-        reply_markup: {
-          inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url: premiumUrl }]],
-        },
-      };
-
-  await ctx.reply(messageText, replyMarkup);
+  await ctx.reply(messageText, premiumReplyMarkup(premiumUrl));
 });
 
 // Простая память для последних сообщений
 const userMessages = new Map<number, string>();
 
-// 🧩 Вспомогательная функция получения юзера
 async function getUser(telegramId: string) {
-  let user = await prisma.user.findUnique({ where: { telegramId } });
-  if (!user) {
-    user = await prisma.user.create({ data: { telegramId } });
-    log(`Создан новый пользователь: ${telegramId}`);
-  }
+  const user = await getOrCreateUser(telegramId);
   return user;
 }
 
@@ -62,29 +47,21 @@ function isLimitError(response?: any, error?: any): boolean {
 
 // 🔥 Обработка ошибки лимита (403) - показываем сообщение с кнопкой Premium
 async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
-  const premiumUrl = `${process.env.BACKEND_URL}/payments/create?telegramId=${ctx.from.id}`;
-
-  // Проверяем, является ли URL локальным (Telegram не принимает localhost в URL кнопок)
-  const isLocalhost =
-    premiumUrl.includes("localhost") || premiumUrl.includes("127.0.0.1");
-
+  const premiumUrl = buildPremiumUrl(ctx.from.id);
+  const isLocalhost = isLocalhostUrl(premiumUrl);
   const messageText =
     "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
     "💎 Хочешь без ограничений и новых стилей? Подключи Premium ✨" +
     (isLocalhost ? `\n\nСсылка для оплаты: ${premiumUrl}` : "");
 
-  const replyMarkup = isLocalhost
-    ? undefined
-    : {
-        inline_keyboard: [[{ text: "💳 Купить Premium — 199₽", url: premiumUrl }]],
-      };
+  const replyMarkup = premiumReplyMarkup(premiumUrl);
 
   await ctx.telegram.editMessageText(
     ctx.chat.id,
     thinkingMsg.message_id,
     undefined,
     messageText,
-    replyMarkup ? { reply_markup: replyMarkup } : undefined
+    replyMarkup ? { reply_markup: replyMarkup.reply_markup } : undefined
   );
 
   log(`Пользователь ${userId} достиг лимита (403)`);
