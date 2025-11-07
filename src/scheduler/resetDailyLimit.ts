@@ -49,7 +49,7 @@ async function resetDailyLimit() {
       if (!user.telegramId) return null;
 
       // Вычисляем максимальный лимит: базовый + реферальные бонусы
-      const referralsCount = referralsMap.get(user.telegramId) || 0;
+      const referralsCount = referralsMap.get(user.telegramId) ?? 0;
       const maxLimit = BASE_LIMIT + referralsCount * REFERRAL_BONUS;
 
       return prisma.user.update({
