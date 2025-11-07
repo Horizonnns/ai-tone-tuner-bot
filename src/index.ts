@@ -21,26 +21,8 @@ initScheduler();
 const PORT = process.env.PORT || 4000;
 
 // Запуск Express
-// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 // Запуск бота
-// bot.launch();
-// log("🤖 Telegram бот запущен!");
-
-// Запуск Express
-app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-
-  if (process.env.NODE_ENV === "production") {
-    const webhookUrl = `${process.env.BACKEND_URL}/webhook`;
-    try {
-      await bot.telegram.setWebhook(webhookUrl);
-      console.log(`✅ Webhook установлен: ${webhookUrl}`);
-    } catch (err) {
-      console.error("❌ Ошибка установки webhook:", err);
-    }
-  } else {
-    bot.launch();
-    console.log("🤖 Бот запущен в режиме разработки (polling)");
-  }
-});
+bot.launch();
+log("🤖 Telegram бот запущен!");
