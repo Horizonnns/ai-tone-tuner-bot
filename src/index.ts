@@ -19,7 +19,7 @@ app.use("/api/payments", paymentsRouter);
 // Обработка webhook от Telegram
 app.post("/api/webhook", async (req, res) => {
   try {
-    await bot.handleUpdate(req.body); // передаём обновление в Telegraf
+    await bot.handleUpdate(req.body);
     res.sendStatus(200);
   } catch (err) {
     console.error("Ошибка при обработке webhook:", err);
@@ -36,8 +36,7 @@ app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
   try {
-    // Устанавливаем webhook Telegram на URL проекта Railway
-    const webhookUrl = `https://${process.env.BACKEND_URL}/api/webhook`;
+    const webhookUrl = `https://ai-tone-tuner-bot-production.up.railway.app/api/webhook`;
     await bot.telegram.setWebhook(webhookUrl);
     console.log(`🤖 Webhook установлен: ${webhookUrl}`);
 
