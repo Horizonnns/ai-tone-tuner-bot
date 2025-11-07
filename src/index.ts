@@ -1,4 +1,4 @@
-import "./bot/index"; // <- важно, чтобы бот подключился
+import "./bot/index";
 import dotenv from "dotenv";
 import express from "express";
 import paymentsRouter from "./routes/payments";
@@ -16,13 +16,31 @@ app.use(express.json());
 app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
 
+// Endpoint для Telegram webhook
+app.post("/api/webhook", async (req, res) => {
+  try {
+    await bot.handleUpdate(req.body); // Telegraf обработает обновление
+    res.sendStatus(200);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
+
 // Запускаем планировщик
 initScheduler();
-const PORT = process.env.PORT || 4000;
 
-// Запуск Express
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+const PORT = Number(process.env.PORT || 4000);
+const RAILWAY_URL = process.env.RAILWAY_STATIC_URL;
 
-// Запуск бота
-bot.launch();
-log("🤖 Telegram бот запущен!");
+// Запуск сервера и бота через webhookf
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+
+  // Устанавливаем webhook для Telegram
+  await bot.launch({
+    webhook: { domain: RAILWAY_URL, port: PORT, hookPath: "/api/webhook" },
+  });
+
+  log("🤖 Telegram бот запущен через webhook!");
+});
