@@ -28,10 +28,10 @@ app.post("/api/webhook", async (req, res) => {
 });
 
 // Запускаем планировщик
-initScheduler();
+// initScheduler();
 
 const PORT = Number(process.env.PORT || 4000);
-const RAILWAY_URL = process.env.RAILWAY_STATIC_URL;
+const RAILWAY_URL = process.env.BACKEND_URL;
 
 // Запуск сервера и бота через webhookf
 app.listen(PORT, async () => {
