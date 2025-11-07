@@ -11,8 +11,7 @@
     "migrate:deploy": "npx prisma migrate deploy",
     "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma generate",
     "prisma:generate": "npx prisma generate",
-    "prisma:studio": "npx prisma studio",
-    "cron:test": "TEST_CRON_INTERVAL='*/1 * * * *' npx ts-node-dev src/index.ts"
+    "prisma:studio": "npx prisma studio"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
