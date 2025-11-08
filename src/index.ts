@@ -33,7 +33,7 @@ app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
 initScheduler();
-const PORT = Number(process.env.PORT || 4000);
+const PORT = Number(process.env.PORT);
 
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
