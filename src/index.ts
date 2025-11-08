@@ -4,13 +4,13 @@ import express from "express";
 // import paymentsRouter from "./routes/payments";
 
 // import { bot } from "./bot/instance";
-import { log } from "./utils/logger";
+// import { log } from "./utils/logger";
 // import { router as rewriteRouter } from "./routes/rewrite";
 // import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
-app.use(express.json());
+// app.use(express.json());
 
 // Telegram webhook endpoint
 // app.post("/api/webhook", async (req, res) => {
@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 
 // Запускаем планировщик
 // initScheduler();
-const PORT = Number(process.env.PORT || 4000);
+const PORT = process.env.PORT || 4000;
 
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
@@ -47,5 +47,5 @@ app.listen(PORT, async () => {
   //   },
   // });
 
-  log("🤖 Telegram бот запущен через webhook!");
+  // log("🤖 Telegram бот запущен через webhook!");
 });
