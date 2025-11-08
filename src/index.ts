@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 // import paymentsRouter from "./routes/payments";
 
-import { bot } from "./bot/instance";
+// import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
 // import { router as rewriteRouter } from "./routes/rewrite";
 // import { initScheduler } from "./scheduler/resetDailyLimit";
@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 
 // Запускаем планировщик
 // initScheduler();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT || 4000);
 
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
