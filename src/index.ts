@@ -18,35 +18,26 @@ app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
 initScheduler();
+const PORT = Number(process.env.PORT || 4000);
 
-const PORT = Number(process.env.PORT) || 4000;
-const WEBHOOK_DOMAIN =
-  process.env.RAILWAY_STATIC_URL || "ai-tone-tuner-bot-production.up.railway.app";
-const WEBHOOK_PATH = "/api/webhook";
+// Запуск Express
+// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
-// Инициализация и запуск сервера
-(async () => {
-  // Настройка webhook или polling
-  const useWebhook = !!WEBHOOK_DOMAIN;
+// // Запуск бота
+// bot.launch();
+// log("🤖 Telegram бот запущен!");
 
-  if (useWebhook) {
-    // Подключаем webhook middleware для Express
-    app.use(WEBHOOK_PATH, await bot.createWebhook({ domain: WEBHOOK_DOMAIN }));
-  }
+// Запуск сервера и бота через webhookf
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 
-  // Запуск сервера и бота
-  app.listen(PORT, async () => {
-    log(`🚀 Server running on port ${PORT}`);
-
-    if (useWebhook) {
-      // Устанавливаем webhook для Telegram
-      const webhookUrl = `https://${WEBHOOK_DOMAIN}${WEBHOOK_PATH}`;
-      await bot.telegram.setWebhook(webhookUrl);
-      log(`🤖 Telegram бот запущен через webhook: ${webhookUrl}`);
-    } else {
-      // Используем polling для разработки
-      bot.launch();
-      log("🤖 Telegram бот запущен в polling режиме!");
-    }
+  // Устанавливаем webhook для Telegram
+  await bot.launch({
+    webhook: {
+      domain: "ai-tone-tuner-bot-production.up.railway.app",
+      hookPath: "/api/webhook",
+    },
   });
-})();
+
+  log("🤖 Telegram бот запущен через webhook!");
+});
