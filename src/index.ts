@@ -13,15 +13,15 @@ const app = express();
 app.use(express.json());
 
 // Telegram webhook endpoint
-app.post("/api/webhook", async (req, res) => {
-  try {
-    await bot.handleUpdate(req.body);
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Ошибка при обработке webhook:", err);
-    res.sendStatus(500);
-  }
-});
+// app.post("/api/webhook", async (req, res) => {
+//   try {
+//     await bot.handleUpdate(req.body);
+//     res.sendStatus(200);
+//   } catch (err) {
+//     console.error("Ошибка при обработке webhook:", err);
+//     res.sendStatus(500);
+//   }
+// });
 
 app.get("/", (req, res) => {
   res.send("Server is alive!");
@@ -39,6 +39,10 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
-  await bot.launch({});
+  // Устанавливаем webhook для Telegram
+  await bot.launch({
+    webhook: { domain: "ai-tone.up.railway.app", hookPath: "/api/webhook" },
+  });
+
   log("🤖 Telegram бот запущен через webhook!");
 });
