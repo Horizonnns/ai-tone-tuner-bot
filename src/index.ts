@@ -32,7 +32,7 @@ app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
-initScheduler();
+// initScheduler();
 const PORT = Number(process.env.PORT);
 
 // Запуск сервера и бота через webhook
@@ -40,12 +40,12 @@ app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
   // Устанавливаем webhook для Telegram
-  await bot.launch({
-    webhook: {
-      domain: "ai-tone-tuner-bot-production.up.railway.app",
-      hookPath: "/api/webhook",
-    },
-  });
+  // await bot.launch({
+  //   webhook: {
+  //     domain: "ai-tone-tuner-bot-production.up.railway.app",
+  //     hookPath: "/api/webhook",
+  //   },
+  // });
 
   log("🤖 Telegram бот запущен через webhook!");
 });
