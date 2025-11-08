@@ -1,12 +1,12 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
-import paymentsRouter from "./routes/payments";
+// import paymentsRouter from "./routes/payments";
 
 import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
-import { router as rewriteRouter } from "./routes/rewrite";
-import { initScheduler } from "./scheduler/resetDailyLimit";
+// import { router as rewriteRouter } from "./routes/rewrite";
+// import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
@@ -28,12 +28,12 @@ app.get("/", (req, res) => {
 });
 
 // Подключаем маршруты
-app.use("/api", rewriteRouter);
-app.use("/api/payments", paymentsRouter);
+// app.use("/api", rewriteRouter);
+// app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
 // initScheduler();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 4000;
 
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
