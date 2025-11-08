@@ -8,6 +8,44 @@ const BASE_LIMIT = 5;
 const REFERRAL_BONUS = 2; // +2 попытки за каждого реферала
 
 /**
+ * Вычисляет максимальный дневной лимит на основе количества рефералов
+ * @param referralsCount - количество приглашенных рефералов
+ * @returns максимальный дневной лимит
+ */
+function calculateDailyLimit(referralsCount: number): number {
+  return BASE_LIMIT + referralsCount * REFERRAL_BONUS;
+}
+
+/**
+ * Получает количество рефералов для каждого пользователя
+ * @returns Map, где ключ - telegramId, значение - количество рефералов
+ */
+async function getReferralsCountMap(): Promise<Map<string, number>> {
+  const referrals = await prisma.referral.groupBy({
+    by: ["inviterId"],
+    _count: { id: true },
+  });
+
+  return new Map(referrals.map((referral) => [referral.inviterId, referral._count.id]));
+}
+
+/**
+ * Обновляет дневной лимит для одного пользователя
+ */
+async function updateUserDailyLimit(
+  userId: number,
+  telegramId: string,
+  referralsCount: number
+): Promise<void> {
+  const newLimit = calculateDailyLimit(referralsCount);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { dailyLimit: newLimit },
+  });
+}
+
+/**
  * Сбрасывает дневные лимиты для всех пользователей
  *
  * Логика работы:
@@ -18,7 +56,7 @@ const REFERRAL_BONUS = 2; // +2 попытки за каждого рефера�
  * При ежедневном сбросе каждый пользователь получает свой максимальный лимит
  * на основе количества приглашенных рефералов
  */
-async function resetDailyLimit() {
+async function resetDailyLimit(): Promise<void> {
   const startTime = Date.now();
 
   try {
@@ -35,31 +73,21 @@ async function resetDailyLimit() {
       return;
     }
 
-    // Получаем количество рефералов для каждого пользователя одним запросом
-    const referrals = await prisma.referral.groupBy({
-      by: ["inviterId"],
-      _count: { id: true },
-    });
+    // Получаем количество рефералов для каждого пользователя
+    const referralsMap = await getReferralsCountMap();
 
-    // Создаем Map для быстрого доступа: telegramId -> количество рефералов
-    const referralsMap = new Map(referrals.map((r) => [r.inviterId, r._count.id]));
-
-    // Подготавливаем обновления для всех пользователей
-    const updatePromises = users.map((user) => {
-      if (!user.telegramId) return null;
-
-      // Вычисляем максимальный лимит: базовый + реферальные бонусы
-      const referralsCount: number = referralsMap.get(user.telegramId) ?? 0;
-      const maxLimit = BASE_LIMIT + referralsCount * REFERRAL_BONUS;
-
-      return prisma.user.update({
-        where: { id: user.id },
-        data: { dailyLimit: maxLimit },
+    // Подготавливаем задачи обновления для всех пользователей
+    const updateTasks = users
+      .filter(
+        (user): user is { id: number; telegramId: string } => user.telegramId !== null
+      )
+      .map((user) => {
+        const referralsCount = referralsMap.get(user.telegramId) ?? 0;
+        return updateUserDailyLimit(user.id, user.telegramId, referralsCount);
       });
-    });
 
     // Выполняем все обновления параллельно
-    await Promise.all(updatePromises.filter(Boolean));
+    await Promise.all(updateTasks);
 
     const duration = Date.now() - startTime;
     log(
@@ -68,13 +96,14 @@ async function resetDailyLimit() {
   } catch (error) {
     const duration = Date.now() - startTime;
     logError(`❌ Ошибка при сбросе лимитов (за ${duration}мс): ${error}`);
+    throw error;
   }
 }
 
 /**
  * Инициализирует планировщик для ежедневного сброса лимитов
  */
-export function initScheduler() {
+export function initScheduler(): void {
   cron.schedule(CRON_SCHEDULE, resetDailyLimit, { timezone: TIMEZONE });
   log("🕐 Планировщик запущен: ежедневный сброс dailyLimit в 00:00 (МСК)");
 }
