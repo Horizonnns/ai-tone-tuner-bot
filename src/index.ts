@@ -39,10 +39,6 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
-  // Устанавливаем webhook для Telegram
-  await bot.launch({
-    // webhook: { domain: "https://ai-tone.up.railway.app", hookPath: "/api/webhook" },
-  });
-
+  await bot.launch({});
   log("🤖 Telegram бот запущен через webhook!");
 });
