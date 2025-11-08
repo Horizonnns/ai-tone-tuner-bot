@@ -12,6 +12,17 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// Telegram webhook endpoint
+app.post("/api/webhook", async (req, res) => {
+  try {
+    await bot.handleUpdate(req.body);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Ошибка при обработке webhook:", err);
+    res.sendStatus(500);
+  }
+});
+
 // Подключаем маршруты
 app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
@@ -26,10 +37,10 @@ app.listen(PORT, async () => {
 
   // Устанавливаем webhook для Telegram
   await bot.launch({
-    webhook: {
-      domain: "ai-tone-tuner-bot-production.up.railway.app",
-      hookPath: "/api/webhook",
-    },
+    // webhook: {
+    //   domain: "ai-tone-tuner-bot-production.up.railway.app",
+    //   hookPath: "/api/webhook",
+    // },
   });
 
   log("🤖 Telegram бот запущен через webhook!");
