@@ -13,15 +13,15 @@ const app = express();
 app.use(express.json());
 
 // Telegram webhook endpoint
-// app.post("/api/webhook", async (req, res) => {
-//   try {
-//     await bot.handleUpdate(req.body);
-//     res.sendStatus(200);
-//   } catch (err) {
-//     console.error("Ошибка при обработке webhook:", err);
-//     res.sendStatus(500);
-//   }
-// });
+app.post("/api/webhook", async (req, res) => {
+  try {
+    await bot.handleUpdate(req.body);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Ошибка при обработке webhook:", err);
+    res.sendStatus(500);
+  }
+});
 
 app.get("/", (req, res) => {
   res.send("Server is alive!");
