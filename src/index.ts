@@ -20,14 +20,7 @@ app.use("/api/payments", paymentsRouter);
 initScheduler();
 const PORT = Number(process.env.PORT || 4000);
 
-// Запуск Express
-// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-// // Запуск бота
-// bot.launch();
-// log("🤖 Telegram бот запущен!");
-
-// Запуск сервера и бота через webhookf
+// Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
@@ -35,7 +28,7 @@ app.listen(PORT, async () => {
   await bot.launch({
     webhook: {
       domain: "ai-tone-tuner-bot-production.up.railway.app",
-      path: "/api/webhook",
+      // path: "/api/webhook",
     },
   });
 
