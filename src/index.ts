@@ -23,6 +23,10 @@ app.post("/api/webhook", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Server is alive!");
+});
+
 // Подключаем маршруты
 app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
