@@ -6,7 +6,7 @@ import paymentsRouter from "./routes/payments";
 import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
 import { router as rewriteRouter } from "./routes/rewrite";
-// import { initScheduler } from "./scheduler/resetDailyLimit";
+import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
@@ -41,10 +41,7 @@ app.listen(PORT, async () => {
 
   // Устанавливаем webhook для Telegram
   await bot.launch({
-    webhook: {
-      domain: "ai-tone-tuner-bot-production.up.railway.app",
-      hookPath: "/api/webhook",
-    },
+    webhook: { domain: "https://ai-tone.up.railway.app", hookPath: "/api/webhook" },
   });
 
   log("🤖 Telegram бот запущен через webhook!");
