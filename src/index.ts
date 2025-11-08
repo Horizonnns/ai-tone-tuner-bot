@@ -35,7 +35,7 @@ app.listen(PORT, async () => {
   await bot.launch({
     webhook: {
       domain: "ai-tone-tuner-bot-production.up.railway.app",
-      hookPath: "/api/webhook",
+      path: "/api/webhook",
     },
   });
 
