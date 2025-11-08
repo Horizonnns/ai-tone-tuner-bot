@@ -32,7 +32,7 @@ app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
-// initScheduler();
+initScheduler();
 const PORT = process.env.PORT || 4000;
 
 // Запуск сервера и бота через webhook
@@ -41,7 +41,7 @@ app.listen(PORT, async () => {
 
   // Устанавливаем webhook для Telegram
   await bot.launch({
-    webhook: { domain: "https://ai-tone.up.railway.app", hookPath: "/api/webhook" },
+    // webhook: { domain: "https://ai-tone.up.railway.app", hookPath: "/api/webhook" },
   });
 
   log("🤖 Telegram бот запущен через webhook!");
