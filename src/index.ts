@@ -1,16 +1,16 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
-// import paymentsRouter from "./routes/payments";
+import paymentsRouter from "./routes/payments";
 
-// import { bot } from "./bot/instance";
-// import { log } from "./utils/logger";
-// import { router as rewriteRouter } from "./routes/rewrite";
+import { bot } from "./bot/instance";
+import { log } from "./utils/logger";
+import { router as rewriteRouter } from "./routes/rewrite";
 // import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
-// app.use(express.json());
+app.use(express.json());
 
 // Telegram webhook endpoint
 // app.post("/api/webhook", async (req, res) => {
@@ -28,8 +28,8 @@ app.get("/", (req, res) => {
 });
 
 // Подключаем маршруты
-// app.use("/api", rewriteRouter);
-// app.use("/api/payments", paymentsRouter);
+app.use("/api", rewriteRouter);
+app.use("/api/payments", paymentsRouter);
 
 // Запускаем планировщик
 // initScheduler();
@@ -40,12 +40,12 @@ app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
   // Устанавливаем webhook для Telegram
-  // await bot.launch({
-  //   webhook: {
-  //     domain: "ai-tone-tuner-bot-production.up.railway.app",
-  //     hookPath: "/api/webhook",
-  //   },
-  // });
+  await bot.launch({
+    webhook: {
+      domain: "ai-tone-tuner-bot-production.up.railway.app",
+      hookPath: "/api/webhook",
+    },
+  });
 
-  // log("🤖 Telegram бот запущен через webhook!");
+  log("🤖 Telegram бот запущен через webhook!");
 });
