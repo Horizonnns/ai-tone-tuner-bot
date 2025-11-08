@@ -41,7 +41,7 @@ app.listen(PORT, async () => {
 
   // Устанавливаем webhook для Telegram
   await bot.launch({
-    webhook: { domain: "ai-tone.up.railway.app", hookPath: "/api/webhook" },
+    webhook: { domain: "https://ai-tone.up.railway.app", hookPath: "/api/webhook" },
   });
 
   log("🤖 Telegram бот запущен через webhook!");
