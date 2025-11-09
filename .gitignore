@@ -1,18 +1,20 @@
+# Node.js
 node_modules
-# Keep environment variables out of version control
-.env
 dist
 package-lock.json
 
-/src/generated/prisma
-
-# Local sqlite database
-/src/db/dev.db
-/src/db/*.db-journal
-/src/db/migrations
-/src/db/migration_lock.toml
-
+# Environment variables
+.env
 
 # Logs
+logs
 logs.txt
-logs/
+
+# Prisma
+/src/generated/prisma
+
+# Local SQLite databases (оставляем только для локальной разработки)
+# Эти файлы не нужны в Git
+/src/db/dev.db
+/src/db/*.db-journal
+/src/db/migration_lock.toml
