@@ -105,7 +105,6 @@ bot.on("text", async (ctx) => {
     }
 
     const thinkingMsg = await ctx.reply("✨ Переписываю...");
-    await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
     try {
       const response = await axios.post(`${BACKEND_URL}/rewrite`, {
@@ -183,7 +182,6 @@ bot.action(
     }
 
     const thinkingMsg = await ctx.reply("✨ Переписываю...");
-    await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
     try {
       const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
