@@ -186,7 +186,7 @@ bot.action(
     await ctx.telegram.sendChatAction(ctx.chat.id, "typing");
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/rewrite`, {
+      const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
         text: originalText,
         tone,
         telegramId: String(userId),
