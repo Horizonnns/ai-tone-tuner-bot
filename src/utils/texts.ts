@@ -2,8 +2,8 @@ import { isLocalhostUrl } from "./telegram";
 
 export function premiumOfferText(premiumUrl: string): string {
   const base =
-    "💎 Открой безлимитные переписывания ✨\n\n" +
-    "👉 Оформи *AI Tone Tuner Premium* на 30 дней и пиши без ограничений.\n\n";
+    "✨ Открой безлимитные переписывания\n\n" +
+    "💎 Оформи *AI Tone Tuner Premium* на 30 дней и пиши без ограничений\n\n";
   return (
     base + (isLocalhostUrl(premiumUrl) ? `\n\nСсылка для оплаты: ${premiumUrl}` : "")
   );
@@ -12,7 +12,7 @@ export function premiumOfferText(premiumUrl: string): string {
 export function limitReachedText(premiumUrl: string): string {
   const base =
     "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-    "💎 Хочешь без ограничений и новых стилей? Подключи Premium ✨";
+    "💎 Хочешь без ограничений? Подключи Premium ✨";
   return (
     base + (isLocalhostUrl(premiumUrl) ? `\n\nСсылка для оплаты: ${premiumUrl}` : "")
   );
