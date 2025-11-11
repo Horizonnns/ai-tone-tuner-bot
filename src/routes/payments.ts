@@ -20,7 +20,7 @@ router.get("/create", async (req, res) => {
           return_url: `${process.env.BACKEND_URL}/api/payments/success?telegramId=${telegramId}`,
         },
         capture: true,
-        description: `AI Tone Writer Premium для пользователя ${telegramId}`,
+        description: `AI Tone Tuner Premium для пользователя ${telegramId}`,
         metadata: { telegramId }, // 👈 сохраняем ID в метаданные
       },
       {
@@ -92,7 +92,7 @@ router.post("/webhook", express.json({ type: "application/json" }), async (req, 
         // Отправляем сообщение пользователю
         await bot.telegram.sendMessage(
           telegramId,
-          "🎉 Оплата прошла успешно!\n\n💎 *AI Tone Writer Premium* активирован на 30 дней.\nНаслаждайся безлимитом!",
+          "🎉 Оплата прошла успешно!\n\n💎 *AI Tone Tuner Premium* активирован на 30 дней.\nНаслаждайся безлимитом!",
           { parse_mode: "Markdown" }
         );
 

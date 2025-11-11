@@ -26,7 +26,7 @@ export function setupInline(bot: Telegraf) {
             id: "1",
             title: "💬 Переписать в дружелюбном стиле",
             input_message_content: { message_text: result },
-            description: "AI Tone Writer — мгновенная адаптация",
+            description: "AI Tone Tuner — мгновенная адаптация",
           },
         ],
         { cache_time: 0 }
