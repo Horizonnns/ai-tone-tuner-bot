@@ -40,7 +40,7 @@ app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
   // Устанавливаем webhook для Telegram через Express роут
-  const webhookUrl = `https://ai-tone.up.railway.app/api/webhook`;
+  const webhookUrl = `https://ai-tone-tuner.up.railway.app/api/webhook`;
   await bot.telegram.setWebhook(webhookUrl);
   log(`🤖 Telegram бот webhook установлен: ${webhookUrl}`);
 });
