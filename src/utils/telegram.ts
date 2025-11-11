@@ -1,5 +1,5 @@
 export function buildPremiumUrl(telegramId: number | string): string {
-  return `${process.env.BACKEND_URL}/payments/create?telegramId=${telegramId}`;
+  return `${process.env.BACKEND_URL}/api/payments/create?telegramId=${telegramId}`;
 }
 
 export function isLocalhostUrl(url: string): boolean {
