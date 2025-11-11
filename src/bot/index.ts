@@ -107,7 +107,7 @@ bot.on("text", async (ctx) => {
     const thinkingMsg = await ctx.reply("✨ Переписываю...");
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/rewrite`, {
+      const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
         text: originalText,
         tone,
         telegramId: String(userId),
