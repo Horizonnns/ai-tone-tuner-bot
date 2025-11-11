@@ -1,13 +1,11 @@
 import { log } from "../utils/logger";
 import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
+import { limitReachedText } from "../utils/texts";
 import { prisma } from "../db/client";
 
 export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
   const premiumUrl = buildPremiumUrl(ctx.from.id);
-  const messageText =
-    "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-    "💎 Хочешь без ограничений и новых стилей? Подключи Premium ✨" +
-    (premiumReplyMarkup(premiumUrl) ? "" : `\n\nСсылка для оплаты: ${premiumUrl}`);
+  const messageText = limitReachedText(premiumUrl);
 
   const replyMarkup = premiumReplyMarkup(premiumUrl);
 

@@ -3,8 +3,7 @@ import { isLocalhostUrl } from "./telegram";
 export function premiumOfferText(premiumUrl: string): string {
   const base =
     "💎 Открой безлимитные переписывания ✨\n\n" +
-    "👉 Оформи *AI Tone Tuner Premium* на 30 дней и пиши без ограничений.\n\n" +
-    "Стоимость: *199₽* 💰";
+    "👉 Оформи *AI Tone Tuner Premium* на 30 дней и пиши без ограничений.\n\n";
   return (
     base + (isLocalhostUrl(premiumUrl) ? `\n\nСсылка для оплаты: ${premiumUrl}` : "")
   );
