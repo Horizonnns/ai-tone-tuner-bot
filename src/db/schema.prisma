@@ -14,6 +14,7 @@ model User {
   lastUsedAt   DateTime @default(now())
   isPremium    Boolean  @default(false)
   premiumUntil DateTime?
+  premiumOfferMessageId Int?
 }
 
 model Referral {

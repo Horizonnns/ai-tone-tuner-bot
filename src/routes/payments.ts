@@ -55,19 +55,39 @@ router.get("/success", async (req, res) => {
 router.post("/webhook", express.json({ type: "application/json" }), async (req, res) => {
   try {
     const event = req.body;
+    log(`📬 req: ${req}`);
     log(`📬 Webhook получен: ${event}`);
 
     if (event.event === "payment.succeeded") {
       const telegramId = event.object.metadata?.telegramId;
 
       if (telegramId) {
-        await prisma.user.update({
+        const user = (await prisma.user.update({
           where: { telegramId: String(telegramId) },
           data: {
             isPremium: true,
             premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 дней
           },
-        });
+        })) as any;
+
+        // Пытаемся удалить сообщение с предложением премиума, если оно было отправлено
+        if (user.premiumOfferMessageId) {
+          try {
+            await bot.telegram.deleteMessage(
+              String(telegramId),
+              user.premiumOfferMessageId
+            );
+          } catch (e) {
+            // Игнорируем ошибки удаления (сообщение могло быть уже удалено)
+          } finally {
+            // Чистим сохранённый message_id
+            await prisma.user.update({
+              where: { telegramId: String(telegramId) },
+              // Каст к any, чтобы не зависеть от сгенерённых типов в рантайме
+              data: { premiumOfferMessageId: null } as any,
+            });
+          }
+        }
 
         // Отправляем сообщение пользователю
         await bot.telegram.sendMessage(

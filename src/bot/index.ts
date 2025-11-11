@@ -38,14 +38,27 @@ bot.command("premium", async (ctx) => {
       : undefined;
     await ctx.reply(
       until
-        ? `«💎 У тебя уже есть Premium — наслаждайся ✨»\nАктивен до: ${until}`
-        : "«💎 У тебя уже есть Premium — наслаждайся ✨»"
+        ? `«💎 У тебя уже есть Premium ✨» \nАктивен до: ${until}`
+        : "«💎 У тебя уже есть Premium✨»"
     );
     return;
   }
 
   const premiumUrl = buildPremiumUrl(ctx.from.id);
-  await ctx.reply(premiumOfferText(premiumUrl), premiumReplyMarkup(premiumUrl));
+  const sent = await ctx.reply(
+    premiumOfferText(premiumUrl),
+    premiumReplyMarkup(premiumUrl)
+  );
+  // Сохраняем message_id предложения премиума для последующего удаления после оплаты
+  try {
+    if (sent && typeof sent === "object" && "message_id" in sent) {
+      await prisma.user.update({
+        where: { telegramId },
+        // Поле добавлено в схему; каст к any, чтобы не зависеть от сгенерённых типов в рантайме
+        data: { premiumOfferMessageId: (sent as any).message_id } as any,
+      });
+    }
+  } catch {}
 });
 
 async function getUser(telegramId: string) {
