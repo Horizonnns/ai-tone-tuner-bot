@@ -1,5 +1,6 @@
 import { log } from "../utils/logger";
 import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
+import { prisma } from "../db/client";
 
 export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
   const premiumUrl = buildPremiumUrl(ctx.from.id);
@@ -17,6 +18,14 @@ export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: num
     messageText,
     replyMarkup ? { reply_markup: replyMarkup.reply_markup } : undefined
   );
+
+  // Сохраняем id сообщения с предложением премиума, чтобы удалить после оплаты
+  try {
+    await prisma.user.update({
+      where: { telegramId: String(userId) },
+      data: { premiumOfferMessageId: thinkingMsg.message_id } as any,
+    });
+  } catch {}
 
   log(`Пользователь ${userId} достиг лимита (403)`);
 }

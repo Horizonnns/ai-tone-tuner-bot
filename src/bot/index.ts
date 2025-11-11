@@ -38,8 +38,8 @@ bot.command("premium", async (ctx) => {
       : undefined;
     await ctx.reply(
       until
-        ? `«💎 У тебя уже есть Premium ✨» \nАктивен до: ${until}`
-        : "«💎 У тебя уже есть Premium✨»"
+        ? `💎 У тебя уже есть Premium ✨\nАктивен до: ${until}`
+        : "💎 У тебя уже есть Premium✨"
     );
     return;
   }
