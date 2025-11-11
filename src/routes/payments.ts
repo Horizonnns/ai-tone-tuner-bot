@@ -17,7 +17,7 @@ router.get("/create", async (req, res) => {
         amount: { value: "199.00", currency: "RUB" },
         confirmation: {
           type: "redirect",
-          return_url: `${process.env.BASE_URL}/api/payments/success?telegramId=${telegramId}`,
+          return_url: `${process.env.BACKEND_URL}/api/payments/success?telegramId=${telegramId}`,
         },
         capture: true,
         description: `AI Tone Writer Premium для пользователя ${telegramId}`,
