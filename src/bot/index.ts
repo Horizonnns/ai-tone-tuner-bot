@@ -29,6 +29,21 @@ setupInline(bot);
 
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
+  const telegramId = String(ctx.from.id);
+  const user = await getOrCreateUser(telegramId);
+
+  if (user.isPremium) {
+    const until = user.premiumUntil
+      ? new Date(user.premiumUntil).toLocaleDateString("ru-RU")
+      : undefined;
+    await ctx.reply(
+      until
+        ? `💎 У тебя уже есть Premium ✨\nАктивен до: ${until}\nСпасибо за поддержку!`
+        : "💎 У тебя уже есть Premium ✨ Спасибо за поддержку!"
+    );
+    return;
+  }
+
   const premiumUrl = buildPremiumUrl(ctx.from.id);
   await ctx.reply(premiumOfferText(premiumUrl), premiumReplyMarkup(premiumUrl));
 });
