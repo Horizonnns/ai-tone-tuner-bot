@@ -6,7 +6,6 @@ import { prisma } from "../db/client";
 export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
   const premiumUrl = buildPremiumUrl(ctx.from.id);
   const messageText = limitReachedText(premiumUrl);
-
   const replyMarkup = premiumReplyMarkup(premiumUrl);
 
   await ctx.telegram.editMessageText(
@@ -17,11 +16,13 @@ export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: num
     replyMarkup ? { reply_markup: replyMarkup.reply_markup } : undefined
   );
 
-  // Сохраняем id сообщения с предложением премиума, чтобы удалить после оплаты
+  // Регистрируем это сообщение как оффер, чтобы удалить после оплаты
   try {
-    await prisma.user.update({
-      where: { telegramId: String(userId) },
-      data: { premiumOfferMessageId: thinkingMsg.message_id } as any,
+    await (prisma as any).offerMessage.create({
+      data: {
+        telegramId: String(userId),
+        messageId: thinkingMsg.message_id as number,
+      },
     });
   } catch {}
 
