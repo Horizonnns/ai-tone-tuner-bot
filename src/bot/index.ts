@@ -49,13 +49,14 @@ bot.command("premium", async (ctx) => {
     premiumOfferText(premiumUrl),
     premiumReplyMarkup(premiumUrl)
   );
-  // Сохраняем message_id предложения премиума для последующего удаления после оплаты
+  // Сохраняем id сообщения предложения, чтобы удалить после оплаты
   try {
     if (sent && typeof sent === "object" && "message_id" in sent) {
-      await prisma.user.update({
-        where: { telegramId },
-        // Поле добавлено в схему; каст к any, чтобы не зависеть от сгенерённых типов в рантайме
-        data: { premiumOfferMessageId: (sent as any).message_id } as any,
+      await (prisma as any).offerMessage.create({
+        data: {
+          telegramId,
+          messageId: (sent as any).message_id as number,
+        },
       });
     }
   } catch {}
