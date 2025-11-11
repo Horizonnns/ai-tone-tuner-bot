@@ -34,13 +34,14 @@ app.use("/api/payments", paymentsRouter);
 // Запускаем планировщик
 initScheduler();
 const PORT = process.env.PORT || 4000;
+const BACKEND_URL = process.env.BACKEND_URL;
 
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
   // Устанавливаем webhook для Telegram через Express роут
-  const webhookUrl = `https://ai-tone-tuner.up.railway.app/api/webhook`;
+  const webhookUrl = `${BACKEND_URL}/api/webhook`;
   await bot.telegram.setWebhook(webhookUrl);
   log(`🤖 Telegram бот webhook установлен: ${webhookUrl}`);
 });
