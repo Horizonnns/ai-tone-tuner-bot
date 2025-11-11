@@ -14,7 +14,13 @@ model User {
   lastUsedAt   DateTime @default(now())
   isPremium    Boolean  @default(false)
   premiumUntil DateTime?
-  premiumOfferMessageId Int?
+}
+
+model OfferMessage {
+  id         Int      @id @default(autoincrement())
+  telegramId String
+  messageId  Int
+  createdAt  DateTime @default(now())
 }
 
 model Referral {
