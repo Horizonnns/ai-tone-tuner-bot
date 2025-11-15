@@ -133,7 +133,7 @@ bot.on("text", async (ctx) => {
       return;
     }
 
-    const thinkingMsg = await ctx.reply("✨ Переписываю...");
+    const thinkingMsg = await ctx.reply("✨");
 
     try {
       const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
@@ -149,23 +149,21 @@ bot.on("text", async (ctx) => {
         return;
       }
 
-      let prefixMsg = "✨ Переписываю...";
-      if (!isPremium && remaining !== "∞") {
-        const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-        const used = totalLimit - remaining;
-        prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
-      }
+      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+      const used = remaining !== "∞" ? totalLimit - remaining : 0;
+      const attemptsInfo =
+        !isPremium && remaining !== "∞"
+          ? `\n\n_${used}/${totalLimit} попыток на сегодня_`
+          : "";
 
       await ctx.telegram.editMessageText(
         ctx.chat.id,
         thinkingMsg.message_id,
         undefined,
-        `${prefixMsg}\n\nВот твой текст в стиле *${tone}*:\n\n${result}`,
+        `Вот твой текст в стиле *${tone}*:\n\n${result}${attemptsInfo}`,
         { parse_mode: "Markdown" }
       );
 
-      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-      const used = remaining !== "∞" ? totalLimit - remaining : 0;
       log(`User ${userId} rewrote text in custom tone "${tone}" (${used}/${totalLimit})`);
       deleteUserMessage(userId);
     } catch (err: any) {
@@ -210,7 +208,7 @@ bot.action(
       return;
     }
 
-    const thinkingMsg = await ctx.reply("✨ Переписываю...");
+    const thinkingMsg = await ctx.reply("✨");
 
     try {
       const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
@@ -226,23 +224,21 @@ bot.action(
         return;
       }
 
-      let prefixMsg = "✨ Переписываю...";
-      if (!isPremium && remaining !== "∞") {
-        const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-        const used = totalLimit - remaining;
-        prefixMsg += ` (${used}/${totalLimit} попыток на сегодня)`;
-      }
+      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
+      const used = remaining !== "∞" ? totalLimit - remaining : 0;
+      const attemptsInfo =
+        !isPremium && remaining !== "∞"
+          ? `\n\n_${used}/${totalLimit} попыток на сегодня_`
+          : "";
 
       await ctx.telegram.editMessageText(
         ctx.chat.id,
         thinkingMsg.message_id,
         undefined,
-        `${prefixMsg}\n\nВот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}`,
+        `Вот твой текст в стиле *${toneLabel(tone)}*:\n\n${result}${attemptsInfo}`,
         { parse_mode: "Markdown" }
       );
 
-      const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-      const used = remaining !== "∞" ? totalLimit - remaining : 0;
       log(`User ${userId} rewrote text in ${tone} tone (${used}/${totalLimit})`);
       deleteUserMessage(userId);
     } catch (err: any) {
