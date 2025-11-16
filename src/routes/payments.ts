@@ -90,7 +90,7 @@ router.post("/webhook", express.json({ type: "application/json" }), async (req, 
         // Отправляем сообщение пользователю
         await bot.telegram.sendMessage(
           telegramId,
-          "🎉 Оплата прошла успешно!\n\n💎 *AI Tone Tuner Premium* активирован на 30 дней.\nНаслаждайся безлимитом!",
+          "🎉 Оплата прошла успешно!\n\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
           { parse_mode: "Markdown" }
         );
 

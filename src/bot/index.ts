@@ -84,10 +84,13 @@ bot.start(async (ctx) => {
     if (referralCreated) {
       const inviter = await prisma.user.findUnique({ where: { telegramId: inviterId } });
       if (inviter) {
-        await bot.telegram.sendMessage(
-          inviterId,
-          `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
-        );
+        if (!inviter.isPremium) {
+          // Для обычных пользователей отправляем сообщение с информацией о попытках
+          await bot.telegram.sendMessage(
+            inviterId,
+            `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
+          );
+        }
       }
     }
   }
