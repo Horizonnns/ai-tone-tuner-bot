@@ -27,6 +27,11 @@ dotenv.config();
 const BACKEND_URL = process.env.BACKEND_URL;
 setupInline(bot);
 
+async function getUser(telegramId: string) {
+  const user = await getOrCreateUser(telegramId);
+  return user;
+}
+
 // 🔄 Общая функция для переписывания текста
 async function rewriteText(
   ctx: any,
@@ -120,11 +125,6 @@ bot.command("premium", async (ctx) => {
   } catch {}
 });
 
-async function getUser(telegramId: string) {
-  const user = await getOrCreateUser(telegramId);
-  return user;
-}
-
 bot.start(async (ctx) => {
   const args = ctx.message.text.split(" ");
   const inviterId = args[1];
@@ -214,6 +214,7 @@ bot.action(
 
     try {
       await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+      await ctx.deleteMessage();
     } catch {}
 
     if (!originalText) {
@@ -228,6 +229,7 @@ bot.action(
 bot.action("tone_custom", async (ctx) => {
   try {
     await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+    await ctx.deleteMessage();
   } catch {}
   setAwaitingCustomTone(ctx.from.id, true);
   await ctx.reply(
