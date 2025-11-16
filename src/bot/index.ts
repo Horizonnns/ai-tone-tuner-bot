@@ -227,7 +227,7 @@ bot.action(
     const originalText = getUserMessage(userId);
 
     try {
-      await ctx.deleteMessage();
+      // await ctx.deleteMessage();
       // Удаляем сообщение с клавиатурой из базы данных
       const keyboardMessages = await (prisma as any).offerMessage.findMany({
         where: { telegramId },
@@ -258,7 +258,7 @@ bot.action("tone_custom", async (ctx) => {
   const telegramId = String(userId);
 
   try {
-    await ctx.deleteMessage();
+    // await ctx.deleteMessage();
     // Удаляем сообщение с клавиатурой из базы данных
     const keyboardMessages = await (prisma as any).offerMessage.findMany({
       where: { telegramId },
