@@ -200,23 +200,22 @@ bot.on("text", async (ctx) => {
 
   setUserMessage(userId, text);
 
-  // HERE IS CHANGING
   const telegramId = String(ctx.from.id);
-
-  const sent = await ctx.reply("Выбери стиль, в котором переписать:", {
+  const sentStyle = await ctx.reply("Выбери стиль, в котором переписать:", {
     reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
   });
-
-  // Сохраняем id сообщения предложения, чтобы удалить после оплаты
+  // Сохраняем id сообщения с клавиатурой, чтобы удалить после выбора стиля
   try {
-    if (sent && typeof sent === "object" && "message_id" in sent) {
+    if (sentStyle && typeof sentStyle === "object" && "message_id" in sentStyle) {
       await (prisma as any).offerMessage.create({
-        data: { telegramId, messageId: (sent as any).message_id as number },
+        data: {
+          telegramId,
+          messageId: (sentStyle as any).message_id as number,
+        },
       });
     }
   } catch {}
 });
-// HERE IS CHANGING
 
 // ⚙️ Обработка выбора стиля
 bot.action(
@@ -224,11 +223,25 @@ bot.action(
   async (ctx) => {
     const tone = ctx.match[1];
     const userId = ctx.from.id;
+    const telegramId = String(userId);
     const originalText = getUserMessage(userId);
 
     try {
       await ctx.deleteMessage();
-      // await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+      // Удаляем сообщение с клавиатурой из базы данных
+      const keyboardMessages = await (prisma as any).offerMessage.findMany({
+        where: { telegramId },
+      });
+      for (const msg of keyboardMessages) {
+        try {
+          await ctx.telegram.deleteMessage(ctx.chat.id, msg.messageId);
+        } catch {
+          // пропускаем ошибки удаления (могло быть удалено вручную/истекло)
+        }
+      }
+      await (prisma as any).offerMessage.deleteMany({
+        where: { telegramId },
+      });
     } catch {}
 
     if (!originalText) {
@@ -241,11 +254,28 @@ bot.action(
 );
 
 bot.action("tone_custom", async (ctx) => {
+  const userId = ctx.from.id;
+  const telegramId = String(userId);
+
   try {
-    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     await ctx.deleteMessage();
+    // Удаляем сообщение с клавиатурой из базы данных
+    const keyboardMessages = await (prisma as any).offerMessage.findMany({
+      where: { telegramId },
+    });
+    for (const msg of keyboardMessages) {
+      try {
+        await ctx.telegram.deleteMessage(ctx.chat.id, msg.messageId);
+      } catch {
+        // пропускаем ошибки удаления (могло быть удалено вручную/истекло)
+      }
+    }
+    await (prisma as any).offerMessage.deleteMany({
+      where: { telegramId },
+    });
   } catch {}
-  setAwaitingCustomTone(ctx.from.id, true);
+
+  setAwaitingCustomTone(userId, true);
   await ctx.reply(
     "Напиши стиль/тон, в котором переписать (пример: 'лаконичный официальный')"
   );
