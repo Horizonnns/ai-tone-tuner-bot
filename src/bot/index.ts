@@ -16,9 +16,6 @@ import {
   setUserMessage,
   getUserMessage,
   deleteUserMessage,
-  setKeyboardMessageId,
-  getKeyboardMessageId,
-  deleteKeyboardMessageId,
 } from "../services/messageCache";
 import {
   isAwaitingCustomTone,
@@ -202,12 +199,9 @@ bot.on("text", async (ctx) => {
   }
 
   setUserMessage(userId, text);
-  const keyboardMsg = await ctx.reply("Выбери стиль, в котором переписать:", {
+  await ctx.reply("Выбери стиль, в котором переписать:", {
     reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
   });
-  if (keyboardMsg && typeof keyboardMsg === "object" && "message_id" in keyboardMsg) {
-    setKeyboardMessageId(userId, (keyboardMsg as any).message_id);
-  }
 });
 
 // ⚙️ Обработка выбора стиля
@@ -220,14 +214,7 @@ bot.action(
 
     try {
       await ctx.deleteMessage();
-      // Удаляем сообщение с клавиатурой, если оно есть
-      const keyboardMsgId = getKeyboardMessageId(userId);
-      if (keyboardMsgId) {
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat.id, keyboardMsgId);
-        } catch {}
-        deleteKeyboardMessageId(userId);
-      }
+      // await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     } catch {}
 
     if (!originalText) {
@@ -240,19 +227,11 @@ bot.action(
 );
 
 bot.action("tone_custom", async (ctx) => {
-  const userId = ctx.from.id;
   try {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     await ctx.deleteMessage();
-    // Удаляем сообщение с клавиатурой, если оно есть
-    const keyboardMsgId = getKeyboardMessageId(userId);
-    if (keyboardMsgId) {
-      try {
-        await ctx.telegram.deleteMessage(ctx.chat.id, keyboardMsgId);
-      } catch {}
-      deleteKeyboardMessageId(userId);
-    }
   } catch {}
-  setAwaitingCustomTone(userId, true);
+  setAwaitingCustomTone(ctx.from.id, true);
   await ctx.reply(
     "Напиши стиль/тон, в котором переписать (пример: 'лаконичный официальный')"
   );
