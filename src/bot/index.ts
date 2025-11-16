@@ -199,10 +199,24 @@ bot.on("text", async (ctx) => {
   }
 
   setUserMessage(userId, text);
-  await ctx.reply("Выбери стиль, в котором переписать:", {
+
+  // HERE IS CHANGING
+  const telegramId = String(ctx.from.id);
+
+  const sent = await ctx.reply("Выбери стиль, в котором переписать:", {
     reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
   });
+
+  // Сохраняем id сообщения предложения, чтобы удалить после оплаты
+  try {
+    if (sent && typeof sent === "object" && "message_id" in sent) {
+      await (prisma as any).offerMessage.create({
+        data: { telegramId, messageId: (sent as any).message_id as number },
+      });
+    }
+  } catch {}
 });
+// HERE IS CHANGING
 
 // ⚙️ Обработка выбора стиля
 bot.action(
