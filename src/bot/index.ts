@@ -213,8 +213,8 @@ bot.action(
     const originalText = getUserMessage(userId);
 
     try {
-      await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
       await ctx.deleteMessage();
+      await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     } catch {}
 
     if (!originalText) {
