@@ -3,7 +3,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { log, logError } from "../utils/logger";
 import { setupInline } from "./inline";
-import { toneLabel, buildToneKeyboard } from "./tones";
+import { toneLabel, buildToneKeyboard, TONE_SELECTION_TEXT } from "./tones";
 
 import { addReferral, generateReferralLink } from "../services/referral";
 import { prisma } from "../db/client";
@@ -201,20 +201,45 @@ bot.on("text", async (ctx) => {
   setUserMessage(userId, text);
 
   const telegramId = String(ctx.from.id);
-  const sentStyle = await ctx.reply("Выбери стиль, в котором переписать:", {
-    reply_markup: { inline_keyboard: buildToneKeyboard("collapsed") },
-  });
-  // Сохраняем id сообщения с клавиатурой, чтобы удалить после выбора стиля
+  // Редактируем сообщение пользователя, заменяя его на сообщение с клавиатурой
   try {
-    if (sentStyle && typeof sentStyle === "object" && "message_id" in sentStyle) {
+    await ctx.telegram.editMessageText(
+      ctx.chat.id,
+      ctx.message.message_id,
+      undefined,
+      TONE_SELECTION_TEXT,
+      { reply_markup: { inline_keyboard: buildToneKeyboard("collapsed", false) } }
+    );
+    // Сохраняем id сообщения с клавиатурой, чтобы удалить после выбора стиля
+    try {
       await (prisma as any).offerMessage.create({
         data: {
           telegramId,
-          messageId: (sentStyle as any).message_id as number,
+          messageId: ctx.message.message_id,
         },
       });
-    }
-  } catch {}
+    } catch {}
+  } catch (err) {
+    // Если не удалось отредактировать, отправляем новое сообщение
+    const sentStyle = await ctx.reply(TONE_SELECTION_TEXT, {
+      reply_markup: { inline_keyboard: buildToneKeyboard("collapsed", false) },
+    });
+    try {
+      if (sentStyle && typeof sentStyle === "object" && "message_id" in sentStyle) {
+        await (prisma as any).offerMessage.create({
+          data: {
+            telegramId,
+            messageId: (sentStyle as any).message_id as number,
+          },
+        });
+      }
+    } catch {}
+  }
+});
+
+// Обработчик заголовка (ничего не делает, просто отвечает на callback)
+bot.action("tone_header", async (ctx) => {
+  await ctx.answerCbQuery();
 });
 
 // ⚙️ Обработка выбора стиля
@@ -283,13 +308,17 @@ bot.action("tone_custom", async (ctx) => {
 
 bot.action("tone_more", async (ctx) => {
   try {
-    await ctx.editMessageReplyMarkup({ inline_keyboard: buildToneKeyboard("expanded") });
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: buildToneKeyboard("expanded", false),
+    });
   } catch {}
 });
 
 // Свернуть дополнительные тона
 bot.action("tone_less", async (ctx) => {
   try {
-    await ctx.editMessageReplyMarkup({ inline_keyboard: buildToneKeyboard("collapsed") });
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: buildToneKeyboard("collapsed", false),
+    });
   } catch {}
 });
