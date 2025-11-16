@@ -11,6 +11,8 @@ export interface IToneOption {
   label: string;
 }
 
+export const TONE_SELECTION_TEXT = "Выбери стиль, в котором переписать:";
+
 export const TONES: IToneOption[] = [
   { key: "business", label: "💼 Деловой" },
   { key: "friendly", label: "💬 Дружелюбный" },
@@ -34,21 +36,41 @@ export function toneLabel(key: string): string {
 
 export type KeyboardMode = "collapsed" | "expanded";
 
-export function buildToneKeyboard(mode: KeyboardMode = "collapsed") {
+export function buildToneKeyboard(
+  mode: KeyboardMode = "collapsed",
+  includeHeader: boolean = false
+) {
   const base = TONES.slice(0, 4).map((t) => [
     { text: t.label, callback_data: `tone_${t.key}` },
   ]);
   if (mode === "collapsed") {
-    return [...base, [{ text: "➕ Ещё стили", callback_data: "tone_more" }]];
+    const keyboard = includeHeader
+      ? [
+          [{ text: TONE_SELECTION_TEXT, callback_data: "tone_header" }],
+          ...base,
+          [{ text: "➕ Ещё стили", callback_data: "tone_more" }],
+        ]
+      : [...base, [{ text: "➕ Ещё стили", callback_data: "tone_more" }]];
+    return keyboard;
   }
   const extra = TONES.slice(4).map((t) => [
     { text: t.label, callback_data: `tone_${t.key}` },
   ]);
 
-  return [
-    ...base,
-    ...extra,
-    [{ text: "✏️ Свой стиль", callback_data: "tone_custom" }],
-    [{ text: "⬅️ Меньше", callback_data: "tone_less" }],
-  ];
+  const keyboard = includeHeader
+    ? [
+        [{ text: TONE_SELECTION_TEXT, callback_data: "tone_header" }],
+        ...base,
+        ...extra,
+        [{ text: "✏️ Свой стиль", callback_data: "tone_custom" }],
+        [{ text: "⬅️ Меньше", callback_data: "tone_less" }],
+      ]
+    : [
+        ...base,
+        ...extra,
+        [{ text: "✏️ Свой стиль", callback_data: "tone_custom" }],
+        [{ text: "⬅️ Меньше", callback_data: "tone_less" }],
+      ];
+
+  return keyboard;
 }
