@@ -214,7 +214,7 @@ bot.action(
 
     try {
       await ctx.deleteMessage();
-      await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+      // await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     } catch {}
 
     if (!originalText) {
