@@ -5,6 +5,7 @@ import { log } from "../utils/logger";
 
 import axios from "axios";
 import crypto from "crypto";
+import bodyParser from "body-parser";
 const router = express.Router();
 
 // ---------------------
