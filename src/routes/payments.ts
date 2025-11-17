@@ -121,10 +121,11 @@ router.post(
   bodyParser.raw({ type: "*/*" }), // получить raw body
   async (req: Request, res: Response) => {
     try {
-      const signatureHeader = req.header("signature");
-      // req.header("X-Webhook-Signature") ||
-      // req.header("X-Content-Signature") ||
-      // req.header("Webhook-Signature");
+      const signatureHeader =
+        req.header("signature") ||
+        req.header("X-Webhook-Signature") ||
+        req.header("X-Content-Signature") ||
+        req.header("Webhook-Signature");
 
       log(`🚀 headers: ${JSON.stringify(req.headers, null, 2)}`);
       log(`🚀 signatureHeader: ${signatureHeader}`);
