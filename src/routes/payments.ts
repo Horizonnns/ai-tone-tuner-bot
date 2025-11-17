@@ -55,6 +55,7 @@ router.get("/success", async (req, res) => {
 router.post("/webhook", express.json({ type: "application/json" }), async (req, res) => {
   try {
     const event = req.body;
+    log(`📬 res: ${res}`);
     log(`📬 req: ${req}`);
     log(`📬 Webhook получен: ${event}`);
 
