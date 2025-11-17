@@ -55,9 +55,12 @@ router.get("/success", async (req, res) => {
 router.post("/webhook", express.json({ type: "application/json" }), async (req, res) => {
   try {
     const event = req.body;
-    log(`📬 res: ${res}`);
-    log(`📬 req: ${req}`);
-    log(`📬 Webhook получен: ${event}`);
+    log(`📬 Webhook получен: ${JSON.stringify(res, null, 2)}`);
+    log(`📬 Webhook получен: ${JSON.stringify(req, null, 2)}`);
+    log(`📬 Webhook получен: ${JSON.stringify(event, null, 2)}`);
+
+    log(`📬 Webhook raw body: ${JSON.stringify(req.body, null, 2)}`);
+    log(`📬 Webhook headers: ${JSON.stringify(req.headers, null, 2)}`);
 
     if (event.event === "payment.succeeded") {
       const payment = event.object;
