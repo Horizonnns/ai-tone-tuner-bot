@@ -134,8 +134,8 @@ router.post(
       const secret = process.env.YOOKASSA_SECRET!;
       const rawBody = req.body; // buffer
 
-      console.log("secret", secret);
-      console.log("signature", signature);
+      log(`secret: ${secret}`);
+      log(`signature: ${signature}`);
 
       const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
 
