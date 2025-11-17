@@ -121,15 +121,15 @@ router.post(
   bodyParser.raw({ type: "*/*" }), // получить raw body
   async (req: Request, res: Response) => {
     try {
-      const signature = req.header("signature");
+      const signatureHeader = req.header("signature");
       // req.header("X-Webhook-Signature") ||
       // req.header("X-Content-Signature") ||
       // req.header("Webhook-Signature");
 
       log(`🚀 headers: ${JSON.stringify(req.headers, null, 2)}`);
-      log(`🚀 signature: ${signature}`);
+      log(`🚀 signatureHeader: ${signatureHeader}`);
 
-      if (!signature) {
+      if (!signatureHeader) {
         log("❌ Нет подписи в заголовках");
         return res.status(401).send("Missing signature");
       }
@@ -137,19 +137,21 @@ router.post(
       const secret = process.env.YOOKASSA_SECRET!;
       const rawBody = req.body; // buffer
 
-      const expected = crypto
+      const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(rawBody)
         .digest("base64");
 
-      const parts = signature.split(" ");
-      const hexSignature = parts[3]; // финальная часть — сама подпись
-      const received = Buffer.from(hexSignature, "base64").toString("base64");
+      const parts = signatureHeader.split(" ");
+      const base64Signature = parts[3]; // финальная часть — сама подпись
+      const received = Buffer.from(base64Signature, "base64").toString("base64");
 
-      if (expected !== received) {
+      if (expectedSignature !== received) {
         log("❌ Неверная подпись webhook — отклонено");
         return res.status(401).send("Invalid signature");
       }
+
+      log("✅ Подпись корректна");
 
       // Теперь можно распарсить JSON
       const event = JSON.parse(rawBody.toString());
