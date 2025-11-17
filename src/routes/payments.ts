@@ -126,6 +126,10 @@ router.post(
         req.header("X-Content-Signature") ||
         req.header("Webhook-Signature");
 
+      log(`🚀 req: ${req}`);
+      log(`🚀 res: ${res}`);
+      log(`🚀 signature: ${signature}`);
+
       if (!signature) {
         log("❌ Нет подписи в заголовках");
         return res.status(401).send("Missing signature");
@@ -134,11 +138,7 @@ router.post(
       const secret = process.env.YOOKASSA_SECRET!;
       const rawBody = req.body; // buffer
 
-      log(`secret: ${secret}`);
-      log(`signature: ${signature}`);
-
       const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-
       const received = signature.replace("sha256=", "").trim();
 
       if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
