@@ -126,7 +126,7 @@ router.post(
         req.header("X-Content-Signature") ||
         req.header("Webhook-Signature");
 
-      log(`🚀 req: ${JSON.stringify(req)}`);
+      log(`🚀 headers: ${JSON.stringify(req.headers, null, 2)}`);
       log(`🚀 signature: ${signature}`);
 
       if (!signature) {
