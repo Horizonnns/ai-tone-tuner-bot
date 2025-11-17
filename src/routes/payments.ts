@@ -1,9 +1,11 @@
 import express, { Request, Response } from "express";
-import axios from "axios";
-import crypto from "crypto";
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
 import { log } from "../utils/logger";
+
+import axios from "axios";
+import crypto from "crypto";
+import bodyParser from "body-parser";
 
 const router = express.Router();
 
@@ -113,22 +115,39 @@ router.get("/success", async (_req: Request, res: Response) => {
 // ---------------------
 // ROUTE: WEBHOOK
 // ---------------------
+
 router.post(
   "/webhook",
-  express.json({ type: "application/json" }),
+  bodyParser.raw({ type: "*/*" }), // получить raw body
   async (req: Request, res: Response) => {
     try {
-      const signature = req.header("Webhook-Signature");
-      const secret = process.env.YOOKASSA_SECRET;
+      const signature =
+        req.header("X-Webhook-Signature") ||
+        req.header("X-Content-Signature") ||
+        req.header("Webhook-Signature");
 
-      if (!verifySignature(req.body, signature, secret)) {
+      if (!signature) {
+        log("❌ Нет подписи в заголовках");
+        return res.status(401).send("Missing signature");
+      }
+
+      const secret = process.env.YOOKASSA_SECRET!;
+      const rawBody = req.body; // buffer
+
+      const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+
+      const received = signature.replace("sha256=", "").trim();
+
+      if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         log("❌ Неверная подпись webhook — отклонено");
         return res.status(401).send("Invalid signature");
       }
 
-      const event: IYooMoneyWebhookEvent = req.body;
-      log(`📬 Webhook: ${JSON.stringify(event, null, 2)}`);
+      // Теперь можно распарсить JSON
+      const event = JSON.parse(rawBody.toString());
+      log(`📬 Webhook OK: ${JSON.stringify(event, null, 2)}`);
 
+      // --- Дальнейшая логика ---
       if (event.event !== "payment.succeeded") {
         return res.status(200).send("Ignored");
       }
@@ -141,9 +160,7 @@ router.post(
         return res.status(200).send("No telegramId");
       }
 
-      // ---------------------
-      // SAVE PAYMENT
-      // ---------------------
+      // Сохранение платежа
       await prisma.payment.upsert({
         where: { paymentId: payment.id },
         update: { status: payment.status },
@@ -158,9 +175,7 @@ router.post(
 
       log(`💾 Платёж сохранён: ${payment.id}`);
 
-      // ---------------------
-      // ACTIVATE PREMIUM
-      // ---------------------
+      // Активация премиума
       await prisma.user.update({
         where: { telegramId },
         data: {
@@ -171,33 +186,13 @@ router.post(
 
       log(`💎 Premium активирован: ${telegramId}`);
 
-      // ---------------------
-      // DELETE OLD OFFERS
-      // ---------------------
-      try {
-        const offers = await (prisma as any).offerMessage.findMany({
-          where: { telegramId },
-        });
-
-        for (const offer of offers) {
-          try {
-            await bot.telegram.deleteMessage(telegramId, offer.messageId);
-          } catch {}
-        }
-
-        await (prisma as any).offerMessage.deleteMany({ where: { telegramId } });
-      } catch {}
-
-      // ---------------------
-      // SEND MESSAGE
-      // ---------------------
       await bot.telegram.sendMessage(
         telegramId,
         "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
         { parse_mode: "Markdown" }
       );
 
-      return res.status(200).send("OK");
+      res.status(200).send("OK");
     } catch (err: any) {
       log(`❌ Ошибка webhook: ${err.message}`);
       return res.status(500).send("Error");
