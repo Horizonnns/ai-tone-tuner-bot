@@ -60,7 +60,21 @@ router.post("/webhook", express.json({ type: "application/json" }), async (req, 
     log(`📬 Webhook получен: ${event}`);
 
     if (event.event === "payment.succeeded") {
+      const payment = event.object;
       const telegramId = event.object.metadata?.telegramId;
+
+      // 👉 Сохраняем платеж в БД
+      await prisma.payment.upsert({
+        where: { paymentId: payment.id },
+        update: { status: payment.status },
+        create: {
+          telegramId: String(telegramId),
+          paymentId: payment.id,
+          amount: Number(payment.amount.value),
+          currency: payment.amount.currency,
+          status: payment.status,
+        },
+      });
 
       if (telegramId) {
         await prisma.user.update({
