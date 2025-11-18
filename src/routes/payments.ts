@@ -52,10 +52,11 @@ router.get("/success", async (req, res) => {
 });
 
 // 🔔 Webhook от YooKassa
-router.post("/webhook", express.json({ type: "application/json" }), async (req, res) => {
+router.post("/webhook", async (req, res) => {
   try {
     const event = req.body;
-    log(`📬 Webhook получен: ${event}`);
+    log(`📬 headers: ${req.headers}`);
+    log(`📬 body: ${event}`);
 
     if (event.event === "payment.succeeded") {
       const payment = event.object;
