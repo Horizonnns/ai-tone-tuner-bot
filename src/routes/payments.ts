@@ -33,26 +33,27 @@ interface IYooMoneyWebhookEvent {
 // HELPERS
 // ---------------------
 
-/**
- * Проверка подписи webhook от YooKassa.
- */
-function verifySignature(
-  body: any,
-  signatureHeader: string | undefined,
-  secret: string
-): boolean {
-  if (!signatureHeader) return false;
-  if (!secret) return false;
+type TSignatureAlgo = "RSA-SHA256";
 
-  // Формат: "sha256=HEXSTRING"
-  const signature = signatureHeader.replace("sha256=", "").trim();
+const signatureAlgoMap: Record<string, TSignatureAlgo> = {
+  "1": "RSA-SHA256",
+};
 
-  const computed = crypto
-    .createHmac("sha256", secret)
-    .update(JSON.stringify(body))
-    .digest("hex");
+function parseSignatureHeader(signatureHeader: string) {
+  const parts = signatureHeader.trim().split(/\s+/);
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computed));
+  if (parts.length < 4 || parts[0] !== "v1") {
+    throw new Error("Unsupported signature header format");
+  }
+
+  const [, keyId, algoId, signatureBase64] = parts;
+  const algorithm = signatureAlgoMap[algoId];
+
+  if (!algorithm) {
+    throw new Error(`Unsupported signature algorithm: ${algoId}`);
+  }
+
+  return { keyId, algorithm, signatureBase64 };
 }
 
 // ---------------------
@@ -121,33 +122,36 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const signatureHeader = req.header("signature");
-      log(`signatureHeader: ${signatureHeader}`);
-
       if (!signatureHeader) {
         log("❌ Нет подписи в заголовках");
         return res.status(401).send("Missing signature");
       }
 
-      const parts = signatureHeader.split(" ");
-      const base64Signature = parts[3]; // сама подпись (base64)
-      log(`🚀 base64Signature: ${base64Signature}`);
+      const { keyId, algorithm, signatureBase64 } = parseSignatureHeader(signatureHeader);
+      log(`🔐 Подпись webhook: keyId=${keyId}, algo=${algorithm}`);
 
-      const rawBody = req.body; // buffer
+      const webhookPublicKey = process.env.YOOKASSA_SECRET!;
+      if (!webhookPublicKey) {
+        log("❌ Не задан YOOKASSA_WEBHOOK_PUBLIC_KEY — невозможно проверить подпись");
+        return res.status(500).send("Server misconfigured");
+      }
 
-      const secret = process.env.YOOKASSA_SECRET!;
+      const rawBody = req.body as Buffer;
+      if (!Buffer.isBuffer(rawBody)) {
+        log("❌ Webhook body не является Buffer — raw middleware не применился");
+        return res.status(500).send("Invalid body");
+      }
 
-      // compute HMAC
-      const expectedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody)
-        .digest("base64");
-      log(`🚀 expectedSignature: ${expectedSignature}`);
+      const verifier = crypto.createVerify(algorithm);
+      verifier.update(rawBody);
+      verifier.end();
 
-      log(`📦 rawBody buffer? ${Buffer.isBuffer(rawBody)}`);
-      log(`📦 rawBody bytes: ${rawBody.toString("hex").slice(0, 200)}...`);
-      log(`📦 rawBody text: ${rawBody.toString()}`);
-
-      if (expectedSignature !== base64Signature) {
+      const isSignatureValid = verifier.verify(
+        webhookPublicKey,
+        signatureBase64,
+        "base64"
+      );
+      if (!isSignatureValid) {
         log("❌ Неверная подпись webhook — отклонено");
         return res.status(401).send("Invalid signature");
       }
