@@ -139,7 +139,7 @@ router.post(
       // compute HMAC
       const expectedSignature = crypto
         .createHmac("sha256", secret)
-        .update(rawBody.toString())
+        .update(rawBody)
         .digest("base64");
       log(`🚀 expectedSignature: ${expectedSignature}`);
 

@@ -1,6 +1,7 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
+import bodyParser from "body-parser";
 import paymentsRouter from "./routes/payments";
 
 import { bot } from "./bot/instance";
@@ -10,6 +11,8 @@ import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
+
+app.use("/api/payments/webhook", bodyParser.raw({ type: "application/json" }));
 app.use(express.json());
 app.use("/api/payments", paymentsRouter);
 
