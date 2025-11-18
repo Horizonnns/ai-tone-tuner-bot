@@ -121,9 +121,8 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const signatureHeader = req.header("signature");
-
-      log(`🚀 headers: ${JSON.stringify(req.headers, null, 2)}`);
       log(`🚀 signatureHeader: ${signatureHeader}`);
+      // log(`🚀 headers: ${JSON.stringify(req.headers, null, 2)}`);
 
       if (!signatureHeader) {
         log("❌ Нет подписи в заголовках");
@@ -135,14 +134,21 @@ router.post(
       log(`🚀 base64Signature: ${base64Signature}`);
 
       const rawBody = req.body; // buffer
-      log(`🚀 rawBody: ${rawBody}`);
+      // log(`🚀 rawBody: ${rawBody}`);
+      log(`🚀 rawBody: ${JSON.stringify(rawBody, null, 2)}`);
+
       const secret = process.env.YOOKASSA_SECRET!;
+
+      // createHmac("sha256", test_wKfO1D1u9AgfOJkmhlwmGTEtJW2is4BIYzauXSFpkB0)
+      // .update(rawBody)
+      // .digest("base64");
 
       // compute HMAC
       const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(rawBody)
         .digest("base64");
+      log(`🚀 expectedSignature: ${expectedSignature}`);
 
       if (expectedSignature !== base64Signature) {
         log("❌ Неверная подпись webhook — отклонено");
