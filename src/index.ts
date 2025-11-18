@@ -11,6 +11,7 @@ import { initScheduler } from "./scheduler/resetDailyLimit";
 dotenv.config();
 const app = express();
 app.use("/api/payments", paymentsRouter);
+app.use(express.json());
 
 // Telegram webhook endpoint
 app.post("/api/webhook", async (req, res) => {
@@ -22,8 +23,6 @@ app.post("/api/webhook", async (req, res) => {
     res.sendStatus(500);
   }
 });
-
-app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Server is alive!");
