@@ -52,18 +52,19 @@ router.get("/success", async (req, res) => {
 });
 
 // 🔔 Webhook от YooKassa
-router.post("/webhook", async (req, res) => {
+router.post("/webhook", (req, res) => {
   try {
-    const event = req.body;
-    log(`📬 headers: ${JSON.stringify(req.headers)}`);
-    // log(`📬 body: ${event}`);
+    const rawBody = req.body; // Buffer
+    const bodyString = rawBody.toString("utf8");
+    const event = JSON.parse(bodyString);
+    log(`📬 Webhook raw body: ${bodyString}`);
 
     if (event.event === "payment.succeeded") {
       const payment = event.object;
       const telegramId = event.object.metadata?.telegramId;
 
       // 👉 Сохраняем платеж в БД
-      await prisma.payment.upsert({
+      prisma.payment.upsert({
         where: { paymentId: payment.id },
         update: { status: payment.status },
         create: {
@@ -76,7 +77,7 @@ router.post("/webhook", async (req, res) => {
       });
 
       if (telegramId) {
-        await prisma.user.update({
+        prisma.user.update({
           where: { telegramId: String(telegramId) },
           data: {
             isPremium: true,
@@ -86,23 +87,23 @@ router.post("/webhook", async (req, res) => {
 
         // Удаляем все ранее отправленные оффер-сообщения
         try {
-          const offers = await (prisma as any).offerMessage.findMany({
+          const offers = (prisma as any).offerMessage.findMany({
             where: { telegramId: String(telegramId) },
           });
           for (const offer of offers) {
             try {
-              await bot.telegram.deleteMessage(String(telegramId), offer.messageId);
+              bot.telegram.deleteMessage(String(telegramId), offer.messageId);
             } catch {
               // пропускаем ошибки удаления (могло быть удалено вручную/истекло)
             }
           }
-          await (prisma as any).offerMessage.deleteMany({
+          (prisma as any).offerMessage.deleteMany({
             where: { telegramId: String(telegramId) },
           });
         } catch {}
 
         // Отправляем сообщение пользователю
-        await bot.telegram.sendMessage(
+        bot.telegram.sendMessage(
           telegramId,
           "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
           { parse_mode: "Markdown" }

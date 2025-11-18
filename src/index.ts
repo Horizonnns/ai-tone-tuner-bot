@@ -1,7 +1,7 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
-import bodyParser from "body-parser";
+// import bodyParser from "body-parser";
 import paymentsRouter from "./routes/payments";
 
 import { bot } from "./bot/instance";
@@ -12,8 +12,13 @@ import { initScheduler } from "./scheduler/resetDailyLimit";
 dotenv.config();
 const app = express();
 
-app.use("/api/payments/webhook", bodyParser.raw({ type: "application/json" }));
+// RAW parser only for YooKassa
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+
+// Normal JSON for all other endpoints
 app.use(express.json());
+
+app.use("/api", rewriteRouter);
 app.use("/api/payments", paymentsRouter);
 
 // Telegram webhook endpoint
