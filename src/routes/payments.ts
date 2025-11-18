@@ -5,7 +5,7 @@ import { log } from "../utils/logger";
 
 import axios from "axios";
 import crypto from "crypto";
-// import bodyParser from "body-parser";
+import bodyParser from "body-parser";
 const router = express.Router();
 
 // ---------------------
@@ -117,8 +117,7 @@ router.get("/success", async (_req: Request, res: Response) => {
 
 router.post(
   "/webhook",
-  express.raw({ type: "*/*" }),
-  // bodyParser.raw({ type: "*/*" }), // получить raw body
+  bodyParser.raw({ type: "*/*" }), // получить raw body
   async (req: Request, res: Response) => {
     try {
       const signatureHeader = req.header("signature");
@@ -133,8 +132,10 @@ router.post(
 
       const parts = signatureHeader.split(" ");
       const base64Signature = parts[3]; // сама подпись (base64)
+      log(`🚀 base64Signature: ${base64Signature}`);
 
       const rawBody = req.body; // buffer
+      log(`🚀 rawBody: ${rawBody}`);
       const secret = process.env.YOOKASSA_SECRET!;
 
       // compute HMAC
