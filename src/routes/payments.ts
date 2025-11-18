@@ -5,6 +5,7 @@ import { log } from "../utils/logger";
 
 import axios from "axios";
 import crypto from "crypto";
+// import bodyParser from "body-parser";
 const router = express.Router();
 
 // ---------------------
@@ -114,92 +115,96 @@ router.get("/success", async (_req: Request, res: Response) => {
 // ROUTE: WEBHOOK
 // ---------------------
 
-router.post("/webhook", async (req: Request, res: Response) => {
-  try {
-    const signatureHeader = req.header("signature");
+router.post(
+  "/webhook",
+  // bodyParser.raw({ type: "*/*" }), // получить raw body
+  async (req: Request, res: Response) => {
+    try {
+      const signatureHeader = req.header("signature");
 
-    if (!signatureHeader) {
-      log("❌ Нет подписи в заголовках");
-      return res.status(401).send("Missing signature");
-    }
+      if (!signatureHeader) {
+        log("❌ Нет подписи в заголовках");
+        return res.status(401).send("Missing signature");
+      }
 
-    const parts = signatureHeader.split(" ");
-    const base64Signature = parts[3]; // сама подпись (base64)
-    log(`🚀 base64Signature: ${base64Signature}`);
+      const parts = signatureHeader.split(" ");
+      const base64Signature = parts[3]; // сама подпись (base64)
+      log(`🚀 base64Signature: ${base64Signature}`);
 
-    const rawBody = req.body; // buffer
-    log(`🚀 rawBody: ${JSON.stringify(rawBody, null, 2)}`);
+      const rawBody = req.body; // buffer
+      log(`🚀 rawBody: ${JSON.stringify(rawBody, null, 2)}`);
 
-    const secret = process.env.YOOKASSA_SECRET!;
+      const secret = process.env.YOOKASSA_SECRET!;
 
-    // compute HMAC
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(rawBody)
-      .digest("base64");
-    log(`🚀 expectedSignature: ${expectedSignature}`);
+      // compute HMAC
+      const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(rawBody)
+        .digest("base64");
+      log(`🚀 expectedSignature: ${expectedSignature}`);
 
-    if (expectedSignature !== base64Signature) {
-      log("❌ Неверная подпись webhook — отклонено");
-      return res.status(401).send("Invalid signature");
-    }
+      if (expectedSignature !== base64Signature) {
+        log("❌ Неверная подпись webhook — отклонено");
+        return res.status(401).send("Invalid signature");
+      }
 
-    log("✅ Подпись корректна");
+      log("✅ Подпись корректна");
 
-    // Теперь можно распарсить JSON
-    const event = JSON.parse(rawBody.toString());
-    log(`📬 Webhook OK: ${JSON.stringify(event, null, 2)}`);
+      // Теперь можно распарсить JSON
+      const event = JSON.parse(rawBody.toString());
+      log(`📬 Webhook OK: ${JSON.stringify(event, null, 2)}`);
 
-    // --- Дальнейшая логика ---
-    if (event.event !== "payment.succeeded") {
-      return res.status(200).send("Ignored");
-    }
+      // --- Дальнейшая логика ---
+      if (event.event !== "payment.succeeded") {
+        return res.status(200).send("Ignored");
+      }
 
-    const payment = event.object;
-    const telegramId = payment.metadata?.telegramId;
+      const payment = event.object;
+      const telegramId = payment.metadata?.telegramId;
 
-    if (!telegramId) {
-      log("⚠️ В webhook нет telegramId");
-      return res.status(200).send("No telegramId");
-    }
+      if (!telegramId) {
+        log("⚠️ В webhook нет telegramId");
+        return res.status(200).send("No telegramId");
+      }
 
-    // Сохранение платежа
-    await prisma.payment.upsert({
-      where: { paymentId: payment.id },
-      update: { status: payment.status },
-      create: {
+      // Сохранение платежа
+      await prisma.payment.upsert({
+        where: { paymentId: payment.id },
+        update: { status: payment.status },
+        create: {
+          telegramId,
+          paymentId: payment.id,
+          amount: Number(payment.amount.value),
+          currency: payment.amount.currency,
+          status: payment.status,
+        },
+      });
+
+      log(`💾 Платёж сохранён: ${payment.id}`);
+
+      // Активация премиума
+      await prisma.user.update({
+        where: { telegramId },
+        data: {
+          isPremium: true,
+          premiumUntil: new Date(Date.now() + 30 * 86400000),
+        },
+      });
+
+      log(`💎 Premium активирован: ${telegramId}`);
+
+      await bot.telegram.sendMessage(
         telegramId,
-        paymentId: payment.id,
-        amount: Number(payment.amount.value),
-        currency: payment.amount.currency,
-        status: payment.status,
-      },
-    });
+        "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
+        { parse_mode: "Markdown" }
+      );
 
-    log(`💾 Платёж сохранён: ${payment.id}`);
-
-    // Активация премиума
-    await prisma.user.update({
-      where: { telegramId },
-      data: {
-        isPremium: true,
-        premiumUntil: new Date(Date.now() + 30 * 86400000),
-      },
-    });
-
-    log(`💎 Premium активирован: ${telegramId}`);
-
-    await bot.telegram.sendMessage(
-      telegramId,
-      "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
-      { parse_mode: "Markdown" }
-    );
-
-    res.status(200).send("OK");
-  } catch (err: any) {
-    log(`❌ Ошибка webhook: ${err.message}`);
-    return res.status(500).send("Error");
+      res.status(200).send("OK");
+    } catch (err: any) {
+      log(`❌ Ошибка webhook: ${err.message}`);
+      return res.status(500).send("Error");
+    }
   }
-});
+);
 
 export default router;
