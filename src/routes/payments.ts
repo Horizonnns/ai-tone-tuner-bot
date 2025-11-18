@@ -121,6 +121,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const signatureHeader = req.header("signature");
+      log(`signatureHeader: ${signatureHeader}`);
 
       if (!signatureHeader) {
         log("❌ Нет подписи в заголовках");
