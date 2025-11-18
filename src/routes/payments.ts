@@ -132,7 +132,6 @@ router.post(
       log(`🚀 base64Signature: ${base64Signature}`);
 
       const rawBody = req.body; // buffer
-      log(`🚀 rawBody: ${JSON.stringify(rawBody, null, 2)}`);
 
       const secret = process.env.YOOKASSA_SECRET!;
 
@@ -142,6 +141,10 @@ router.post(
         .update(rawBody)
         .digest("base64");
       log(`🚀 expectedSignature: ${expectedSignature}`);
+
+      log(`📦 rawBody buffer? ${Buffer.isBuffer(rawBody)}`);
+      log(`📦 rawBody bytes: ${rawBody.toString("hex").slice(0, 200)}...`);
+      log(`📦 rawBody text: ${rawBody.toString()}`);
 
       if (expectedSignature !== base64Signature) {
         log("❌ Неверная подпись webhook — отклонено");
