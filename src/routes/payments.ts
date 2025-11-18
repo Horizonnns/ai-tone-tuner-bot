@@ -1,45 +1,51 @@
-import express, { Request, Response } from "express";
+import { isIPv4 } from "net";
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
 import { log } from "../utils/logger";
+import express, { Request, Response } from "express";
 
 import axios from "axios";
-import crypto from "crypto";
 import bodyParser from "body-parser";
+
 const router = express.Router();
 
-// ---------------------
-// HELPERS
-// ---------------------
-type TSignatureAlgo = "RSA-SHA256";
+// Разрешённые диапазоны IP YooKassa (из документации)
+const allowedIpRanges = [
+  "185.71.76.0/27",
+  "185.71.77.0/27",
+  "77.75.153.0/25",
+  "77.75.156.11/32",
+  "77.75.156.35/32",
+  "77.75.154.128/25",
+  "2a02:5180::/32",
+];
 
-const signatureAlgoMap: Record<string, TSignatureAlgo> = {
-  "1": "RSA-SHA256",
-};
-
-function parseSignatureHeader(signatureHeader: string) {
-  const parts = signatureHeader.trim().split(/\s+/);
-
-  if (parts.length < 4 || parts[0] !== "v1") {
-    throw new Error("Unsupported signature header format");
+// Функция, проверяющая, лежит ли IP в диапазонах (можно использовать библиотеку, например `ip-cidr`)
+function ipAllowed(remoteAddress: string): boolean {
+  // Простейшая проверка — можно заменить на более точную
+  // Здесь для примера — проверка на префикс (достаточно грубая)
+  for (const range of allowedIpRanges) {
+    const [base, prefix] = range.split("/");
+    if (!prefix) continue;
+    const prefixNum = Number(prefix);
+    // Только очень простая проверка для IPv4
+    if (isIPv4(remoteAddress) && isIPv4(base)) {
+      const remoteParts = remoteAddress.split(".").map(Number);
+      const baseParts = base.split(".").map(Number);
+      const mask = prefixNum === 0 ? 0 : (~0 << (32 - prefixNum)) >>> 0;
+      const remoteInt = remoteParts.reduce((acc, p) => (acc << 8) + p, 0);
+      const baseInt = baseParts.reduce((acc, p) => (acc << 8) + p, 0);
+      if ((remoteInt & mask) === (baseInt & mask)) {
+        return true;
+      }
+    }
+    // Для IPv6: можно добавить отдельную логику с библиотекой `ip-address` или `ip-cidr`
   }
-
-  const [, keyId, algoId, signatureBase64] = parts;
-  const algorithm = signatureAlgoMap[algoId];
-
-  if (!algorithm) {
-    throw new Error(`Unsupported signature algorithm: ${algoId}`);
-  }
-
-  return { keyId, algorithm, signatureBase64 };
+  return false;
 }
 
-// ---------------------
-// ROUTE: CREATE PAYMENT
-// ---------------------
 router.get("/create", async (req: Request, res: Response) => {
   const telegramId = String(req.query.telegramId || "");
-
   if (!telegramId) {
     return res.status(400).json({ error: "telegramId required" });
   }
@@ -71,7 +77,6 @@ router.get("/create", async (req: Request, res: Response) => {
 
     const confirmation = yookassaRes.data.confirmation?.confirmation_url;
     log(`💰 Создан платёж. Redirect → ${confirmation}`);
-
     return res.redirect(confirmation);
   } catch (error: any) {
     log(
@@ -81,110 +86,89 @@ router.get("/create", async (req: Request, res: Response) => {
   }
 });
 
-// ---------------------
-// ROUTE: SUCCESS REDIRECT
-// ---------------------
 router.get("/success", async (_req: Request, res: Response) => {
   return res.send(
     "✅ Оплата прошла успешно! Premium активируется в течение минуты — вернись в Telegram."
   );
 });
 
-// ---------------------
-// ROUTE: WEBHOOK
-// ---------------------
-
-// Кеш ключей, чтобы не запрашивать их каждый раз
-const webhookKeyCache = new Map<string, string>();
-
-async function getPublicKeyByKeyId(keyId: string): Promise<string> {
-  // Проверяем кеш
-  if (webhookKeyCache.has(keyId)) {
-    return webhookKeyCache.get(keyId)!;
-  }
-
-  // Запрашиваем у YooKassa
-  const response = await axios.get(`https://api.yookassa.ru/v3/webhook_keys/${keyId}`, {
-    auth: {
-      username: process.env.YOOKASSA_SHOP_ID!,
-      password: process.env.YOOKASSA_SECRET!,
-    },
-  });
-
-  const publicKey = response.data.public_key;
-
-  // кладём в кеш
-  webhookKeyCache.set(keyId, publicKey);
-
-  return publicKey;
-}
-
 router.post(
   "/webhook",
-  bodyParser.raw({ type: "*/*" }), // важно!
+  bodyParser.json(), // теперь просто JSON, без raw
   async (req: Request, res: Response) => {
     try {
-      const signatureHeader = req.header("signature");
-      if (!signatureHeader) {
-        log("❌ Нет заголовка Signature");
-        return res.status(401).send("Missing signature");
+      const remote = req.socket.remoteAddress;
+      if (!remote) {
+        log("❌ Не удалось определить IP отправителя webhook");
+        return res.status(403).send("Forbidden");
       }
 
-      // Парсим header
-      const { keyId, algorithm, signatureBase64 } = parseSignatureHeader(signatureHeader);
-      log(`🔐 Webhook signature: keyId=${keyId}, algo=${algorithm}`);
-
-      // Получаем публичный ключ Yookassa
-      const publicKey = await getPublicKeyByKeyId(keyId);
-
-      const rawBody = req.body as Buffer;
-
-      const verifier = crypto.createVerify("RSA-SHA256");
-      verifier.update(rawBody);
-      verifier.end();
-
-      const isValid = verifier.verify(publicKey, signatureBase64, "base64");
-
-      if (!isValid) {
-        log("❌ Неверная подпись webhook — отклонено");
-        return res.status(401).send("Invalid signature");
+      if (!ipAllowed(remote)) {
+        log(`🔒 Webhook пришёл с недопустимого IP: ${remote}`);
+        return res.status(403).send("Forbidden");
       }
 
-      log("✅ Подпись валидна (webhook принят)");
+      const event = req.body;
+      log(`📬 Пришёл webhook: ${JSON.stringify(event, null, 2)}`);
 
-      // Теперь можно парсить JSON
-      const event = JSON.parse(rawBody.toString());
-      log(`📬 Webhook data: ${JSON.stringify(event, null, 2)}`);
-
-      // Игнорируем неудачные события
-      if (event.event !== "payment.succeeded") {
+      if (event.type !== "notification") {
+        log("⚠️ Неизвестный тип webhook:", event.type);
         return res.status(200).send("Ignored");
       }
 
-      const payment = event.object;
-      const telegramId = payment.metadata?.telegramId;
+      if (!event.object || !event.object.id) {
+        log("❌ В webhook нет объекта или id");
+        return res.status(400).send("Bad request");
+      }
+
+      const paymentId = event.object.id;
+      const telegramId = event.object.metadata?.telegramId;
+
+      // Проверяем статус через API YooKassa
+      const apiRes = await axios.get(`https://api.yookassa.ru/v3/payments/${paymentId}`, {
+        auth: {
+          username: process.env.YOOKASSA_SHOP_ID!,
+          password: process.env.YOOKASSA_SECRET!,
+        },
+      });
+      log(`apiRes → ${apiRes}`);
+
+      const realStatus = apiRes.data.status;
+      const webhookStatus = event.object.status;
+
+      log(`🔍 Статус через API: ${realStatus}, в webhook: ${webhookStatus}`);
+
+      if (realStatus !== webhookStatus) {
+        log("⚠️ Статусы не совпадают, возможно поддельный webhook или гонка статусов");
+        return res.status(400).send("Status mismatch");
+      }
+
+      if (event.event !== "payment.succeeded" || realStatus !== "succeeded") {
+        // не тот статус, который тебе нужен — просто игнорируем
+        return res.status(200).send("Ignored");
+      }
 
       if (!telegramId) {
-        log("⚠️ В metadata отсутствует telegramId");
+        log("⚠️ В metadata платежа нет telegramId");
         return res.status(200).send("No telegramId");
       }
 
-      // Записываем платёж
+      // Сохраняем платёж
       await prisma.payment.upsert({
-        where: { paymentId: payment.id },
-        update: { status: payment.status },
+        where: { paymentId },
+        update: { status: realStatus },
         create: {
           telegramId,
-          paymentId: payment.id,
-          amount: Number(payment.amount.value),
-          currency: payment.amount.currency,
-          status: payment.status,
+          paymentId,
+          amount: Number(event.object.amount.value),
+          currency: event.object.amount.currency,
+          status: realStatus,
         },
       });
 
-      log(`💾 Платёж сохранен: ${payment.id}`);
+      log(`💾 Платёж сохранён: ${paymentId}`);
 
-      // Активируем премиум
+      // Активация премиума
       await prisma.user.update({
         where: { telegramId },
         data: {
@@ -193,18 +177,17 @@ router.post(
         },
       });
 
-      log(`💎 Premium активирован для пользователя: ${telegramId}`);
+      log(`💎 Premium активирован для пользователя ${telegramId}`);
 
-      // Отправляем сообщение в телеграм
       await bot.telegram.sendMessage(
         telegramId,
         "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
         { parse_mode: "Markdown" }
       );
 
-      res.status(200).send("OK");
+      return res.status(200).send("OK");
     } catch (err: any) {
-      log(`❌ Ошибка обработчика webhook: ${err.message}`);
+      log(`❌ Ошибка webhook-обработчика: ${err.stack || err.message}`);
       return res.status(500).send("Error");
     }
   }
