@@ -10,8 +10,7 @@
     "migrate:dev": "npx prisma migrate dev --name init && npx prisma generate",
     "migrate:deploy": "npx prisma migrate deploy && npx prisma generate",
     "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma generate",
-    "prisma:studio": "npx prisma studio",
-    "postinstall": "npm run migrate:deploy"
+    "prisma:studio": "npx prisma studio"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
