@@ -5,7 +5,7 @@ import { log } from "../utils/logger";
 
 import axios from "axios";
 import crypto from "crypto";
-// import bodyParser from "body-parser";
+import bodyParser from "body-parser";
 const router = express.Router();
 
 // ---------------------
@@ -117,7 +117,7 @@ router.get("/success", async (_req: Request, res: Response) => {
 
 router.post(
   "/webhook",
-  // bodyParser.raw({ type: "*/*" }), // получить raw body
+  bodyParser.raw({ type: "*/*" }),
   async (req: Request, res: Response) => {
     try {
       const signatureHeader = req.header("signature");
