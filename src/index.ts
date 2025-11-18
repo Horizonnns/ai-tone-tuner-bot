@@ -11,8 +11,9 @@ import { initScheduler } from "./scheduler/resetDailyLimit";
 
 dotenv.config();
 const app = express();
-// app.use("/api/payments/webhook", bodyParser.raw({ type: "*/*" }));
-app.use("/api/payments", paymentsRouter, bodyParser.raw({ type: "application/json" }));
+
+app.use("/api/payments/webhook", bodyParser.raw({ type: "*/*" }));
+app.use("/api/payments", paymentsRouter);
 app.use(express.json());
 
 // Telegram webhook endpoint
