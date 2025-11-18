@@ -51,7 +51,7 @@ router.get("/success", async (req, res) => {
   );
 });
 
-// 🔔 Webhook от YooKassa
+// 🔔 Webhook от YooKassa !updated!
 router.post("/webhook", async (req, res) => {
   try {
     const rawBody = req.body; // Buffer
