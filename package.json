@@ -4,14 +4,13 @@
   "description": "AI Tone Tuner Telegram Bot with Express, Prisma, and YooKassa integration",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "npx ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate:dev": "npx prisma migrate dev --name init && npx prisma generate",
-    "migrate:deploy": "npx prisma migrate deploy && npx prisma generate",
-    "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma generate",
-    "prisma:studio": "npx prisma studio",
-    "postinstall": "npx prisma migrate && npm run start"
+    "migrate:dev": "prisma migrate dev && prisma generate",
+    "migrate:deploy": "prisma migrate deploy && prisma generate",
+    "db:reset": "prisma migrate reset --force --skip-seed && prisma generate",
+    "prisma:studio": "prisma studio"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
