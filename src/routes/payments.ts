@@ -34,6 +34,8 @@ router.get("/create", async (req, res) => {
     );
 
     const confirmationUrl = response.data.confirmation.confirmation_url;
+    console.log("response", response);
+
     log(`✅ Ссылка на оплату: ${confirmationUrl}`);
     res.redirect(confirmationUrl);
   } catch (error: any) {
