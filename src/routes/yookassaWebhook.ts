@@ -56,9 +56,26 @@ export default async function yookassaWebhookHandler(req, res) {
           where: { telegramId: String(telegramId) },
           data: {
             isPremium: true,
-            premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 дней
           },
         });
+
+        // Удаляем все ранее отправленные оффер-сообщения
+        try {
+          const offers = await (prisma as any).offerMessage.findMany({
+            where: { telegramId: String(telegramId) },
+          });
+          for (const offer of offers) {
+            try {
+              await bot.telegram.deleteMessage(String(telegramId), offer.messageId);
+            } catch {
+              // пропускаем ошибки удаления (могло быть удалено вручную/истекло)
+            }
+          }
+          await (prisma as any).offerMessage.deleteMany({
+            where: { telegramId: String(telegramId) },
+          });
+        } catch {}
 
         await bot.telegram.sendMessage(
           telegramId,
