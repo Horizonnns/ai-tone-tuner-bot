@@ -1,28 +1,28 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
-// import bodyParser from "body-parser";
 import paymentsRouter from "./routes/payments";
 
 import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
 import { router as rewriteRouter } from "./routes/rewrite";
 import { initScheduler } from "./scheduler/resetDailyLimit";
+import yookassaWebhookHandler from "./routes/yookassaWebhook";
 
 dotenv.config();
 const app = express();
 
-// RAW parser only for YooKassa
-app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
-// app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+// 1) RAW только для ЮKassa
+app.post("/api/payments/webhook", express.raw({ type: "*/*" }), yookassaWebhookHandler);
 
-// Normal JSON for all other endpoints
+// 2) JSON для всех остальных
 app.use(express.json());
 
-app.use("/api", rewriteRouter);
+// 3) Остальные маршруты
 app.use("/api/payments", paymentsRouter);
+app.use("/api", rewriteRouter);
 
-// Telegram webhook endpoint
+// Telegram webhook
 app.post("/api/webhook", async (req, res) => {
   try {
     await bot.handleUpdate(req.body);
@@ -37,11 +37,9 @@ app.get("/", (req, res) => {
   res.send("Server is alive!");
 });
 
-// Подключаем маршруты
-app.use("/api", rewriteRouter);
-
-// Запускаем планировщик
+// Запуск планировщика
 initScheduler();
+
 const PORT = process.env.PORT || 4000;
 const BACKEND_URL = process.env.BACKEND_URL;
 
