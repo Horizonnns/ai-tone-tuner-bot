@@ -60,12 +60,18 @@ router.post("/webhook", async (req, res) => {
       req.body instanceof Buffer ? req.body.toString("utf8") : JSON.stringify(req.body);
     log(`📬 Webhook raw body: ${bodyString}`);
 
-    const signature = req.headers["signature"];
+    const sigHeader = req.headers["signature"];
+    if (!sigHeader) {
+      return res.status(400).send("Missing signature header");
+    }
+    log(`📬 sigHeader: ${sigHeader}`);
+
     const secret = process.env.YOOKASSA_SECRET;
-    log(`📬 signature: ${signature}`);
     log(`📬 secret: ${secret}`);
 
+    const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
     const [v, ts, r, theirHmac] = signature.split(" ");
+    log(`📬 signature: ${signature}`);
 
     const body = req.body.toString("utf8");
 
