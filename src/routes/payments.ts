@@ -56,8 +56,12 @@ router.post("/webhook", async (req, res) => {
   try {
     const rawBody = req.body; // Buffer
     const bodyString = rawBody.toString("utf8");
+    // log(`📬 Webhook raw body: ${bodyString}`);
+
+    const rawHeaders = req.header;
+    log(`📬 Webhook headers: ${rawHeaders}`);
+
     const event = JSON.parse(bodyString);
-    log(`📬 Webhook raw body: ${bodyString}`);
 
     if (event.event === "payment.succeeded") {
       const payment = event.object;
