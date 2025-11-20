@@ -13,7 +13,8 @@ dotenv.config();
 const app = express();
 
 // RAW parser only for YooKassa
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
+// app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 // Normal JSON for all other endpoints
 app.use(express.json());

@@ -1,8 +1,10 @@
-import express from "express";
-import axios from "axios";
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
 import { log } from "../utils/logger";
+
+import axios from "axios";
+import crypto from "crypto";
+import express from "express";
 
 const router = express.Router();
 
@@ -54,12 +56,29 @@ router.get("/success", async (req, res) => {
 // 🔔 Webhook от YooKassa !updated!
 router.post("/webhook", async (req, res) => {
   try {
-    const rawBody = req.body; // Buffer
-    const bodyString = rawBody.toString("utf8");
-    // log(`📬 Webhook raw body: ${bodyString}`);
+    const bodyString =
+      req.body instanceof Buffer ? req.body.toString("utf8") : JSON.stringify(req.body);
+    log(`📬 Webhook raw body: ${bodyString}`);
 
-    const rawHeaders = JSON.stringify(req.headers, null, 2);
-    log(`📬 Webhook headers: ${rawHeaders}`);
+    const signature = req.headers["signature"];
+    const secret = process.env.YOOKASSA_SECRET;
+    log(`📬 signature: ${signature}`);
+    log(`📬 secret: ${secret}`);
+
+    const [v, ts, r, theirHmac] = signature.split(" ");
+
+    const body = req.body.toString("utf8");
+
+    const myHmac = crypto.createHmac("sha256", secret).update(body).digest("base64");
+
+    if (myHmac !== theirHmac) {
+      console.error("❌ Подпись неверна!");
+      return res.status(400).send("Invalid signature");
+    }
+    console.log("✅ Подпись верна!");
+
+    // const rawHeaders = JSON.stringify(req.headers, null, 2);
+    // log(`📬 Webhook headers: ${rawHeaders}`);
 
     const event = JSON.parse(bodyString);
 
