@@ -6,23 +6,20 @@ import crypto from "crypto";
 export default async function yookassaWebhookHandler(req, res) {
   try {
     // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
-    // if (!(req.body instanceof Buffer)) {
-    //   console.error("❌ raw body is not Buffer");
-    //   return res.status(400).send("Invalid body");
-    // }
-    console.log("req.body instanceof Buffer", req.body instanceof Buffer);
+    if (!(req.body instanceof Buffer)) {
+      console.error("❌ raw body is not Buffer");
+      return res.status(400).send("Invalid body");
+    }
 
     const bodyString = req.body.toString("utf8");
     log(`📬 Webhook raw body: ${bodyString}`);
 
-    // const sigHeader = req.headers["signature"];
-    // if (!sigHeader) {
-    //   return res.status(400).send("Missing signature header");
-    // }
-    // log(`📬 sigHeader: ${sigHeader}`);
-    // const secret = process.env.YOOKASSA_SECRET!;
+    const sigHeader = req.headers["signature"];
+    log(`📬 sigHeader: ${sigHeader}`);
 
+    // const secret = process.env.YOOKASSA_SECRET!;
     // const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
+
     // const [v, ts, r, theirHmac] = signature.split(" ");
     // log(`📬 signature: ${signature}`);
 
