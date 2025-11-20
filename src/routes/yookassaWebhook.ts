@@ -12,23 +12,17 @@ export default async function yookassaWebhookHandler(req, res) {
     }
 
     const bodyString = req.body.toString("utf8");
+    const signature = req.headers["signature"].split(" ");
+
     // log(`📬 Webhook raw body: ${bodyString}`);
-
-    const sigHeader = req.headers["signature"];
-    log(`📬 sigHeader: ${sigHeader}`);
-
-    const secret = process.env.YOOKASSA_SECRET!;
-    // const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
-    const signature = sigHeader.split(" ");
     log(`📬 signature: ${signature}`);
-
-    // const [v, ts, r, theirHmac] = signature.split(" ");
     log(`📬 signature[3]: ${signature[3]}`);
 
+    const secret = process.env.YOOKASSA_SECRET!;
     const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
     log(`📬 myHmac: ${myHmac}`);
 
-    // if (myHmac !== theirHmac) {
+    // if (myHmac !== signature[3]) {
     //   console.error("❌ Подпись неверна!");
     //   return res.status(400).send("Invalid signature");
     // }
