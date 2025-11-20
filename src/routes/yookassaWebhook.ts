@@ -12,7 +12,7 @@ export default async function yookassaWebhookHandler(req, res) {
     }
 
     const bodyString = req.body.toString("utf8");
-    log(`📬 Webhook raw body: ${bodyString}`);
+    // log(`📬 Webhook raw body: ${bodyString}`);
 
     const sigHeader = req.headers["signature"];
     log(`📬 sigHeader: ${sigHeader}`);
@@ -22,8 +22,8 @@ export default async function yookassaWebhookHandler(req, res) {
     const signature = sigHeader.split(" ");
     log(`📬 signature: ${signature}`);
 
-    const [v, ts, r, theirHmac] = signature.split(" ");
-    log(`📬 theirHmac: ${theirHmac}`);
+    // const [v, ts, r, theirHmac] = signature.split(" ");
+    log(`📬 signature[3]: ${signature[3]}`);
 
     const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
     log(`📬 myHmac: ${myHmac}`);
