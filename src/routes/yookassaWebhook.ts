@@ -17,13 +17,16 @@ export default async function yookassaWebhookHandler(req, res) {
     const sigHeader = req.headers["signature"];
     log(`📬 sigHeader: ${sigHeader}`);
 
-    // const secret = process.env.YOOKASSA_SECRET!;
+    const secret = process.env.YOOKASSA_SECRET!;
     // const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
+    const signature = sigHeader.split(" ");
+    log(`📬 signature: ${signature}`);
 
-    // const [v, ts, r, theirHmac] = signature.split(" ");
-    // log(`📬 signature: ${signature}`);
+    const [v, ts, r, theirHmac] = signature.split(" ");
+    log(`📬 theirHmac: ${theirHmac}`);
 
-    // const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
+    const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
+    log(`📬 myHmac: ${myHmac}`);
 
     // if (myHmac !== theirHmac) {
     //   console.error("❌ Подпись неверна!");
