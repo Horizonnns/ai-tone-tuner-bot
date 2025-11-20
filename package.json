@@ -10,8 +10,7 @@
     "migrate:dev": "prisma migrate dev && prisma generate",
     "migrate:deploy": "prisma migrate deploy && prisma generate",
     "db:reset": "prisma migrate reset --force --skip-seed && prisma generate",
-    "prisma:studio": "prisma studio",
-    "postinstall": "if [ \"$RAILWAY_ENVIRONMENT\" = \"production\" ]; then npx prisma migrate deploy && npm run build; fi"
+    "prisma:studio": "prisma studio"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
