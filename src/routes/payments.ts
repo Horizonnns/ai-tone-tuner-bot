@@ -58,9 +58,8 @@ router.post("/webhook", async (req, res) => {
     const bodyString = rawBody.toString("utf8");
     // log(`📬 Webhook raw body: ${bodyString}`);
 
-    const rawHeaders = req.header;
-    const headersString = rawHeaders.toString();
-    log(`📬 Webhook headers: ${headersString}`);
+    const rawHeaders = JSON.stringify(req.header, null, 2);
+    log(`📬 Webhook headers: ${rawHeaders}`);
 
     const event = JSON.parse(bodyString);
 
