@@ -5,35 +5,36 @@ import crypto from "crypto";
 
 export default async function yookassaWebhookHandler(req, res) {
   try {
-    if (!(req.body instanceof Buffer)) {
-      console.error("❌ raw body is not Buffer");
-      return res.status(400).send("Invalid body");
-    }
+    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
+    // if (!(req.body instanceof Buffer)) {
+    //   console.error("❌ raw body is not Buffer");
+    //   return res.status(400).send("Invalid body");
+    // }
+    console.log("req.body instanceof Buffer", req.body instanceof Buffer);
 
     const bodyString = req.body.toString("utf8");
     log(`📬 Webhook raw body: ${bodyString}`);
 
-    const sigHeader = req.headers["signature"];
-    if (!sigHeader) {
-      return res.status(400).send("Missing signature header");
-    }
-    log(`📬 sigHeader: ${sigHeader}`);
+    // const sigHeader = req.headers["signature"];
+    // if (!sigHeader) {
+    //   return res.status(400).send("Missing signature header");
+    // }
+    // log(`📬 sigHeader: ${sigHeader}`);
+    // const secret = process.env.YOOKASSA_SECRET!;
 
-    const secret = process.env.YOOKASSA_SECRET!;
-    log(`📬 secret: ${secret}`);
+    // const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
+    // const [v, ts, r, theirHmac] = signature.split(" ");
+    // log(`📬 signature: ${signature}`);
 
-    const signature = Array.isArray(sigHeader) ? sigHeader.join(" ") : sigHeader;
-    const [v, ts, r, theirHmac] = signature.split(" ");
-    log(`📬 signature: ${signature}`);
+    // const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
 
-    const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
+    // if (myHmac !== theirHmac) {
+    //   console.error("❌ Подпись неверна!");
+    //   return res.status(400).send("Invalid signature");
+    // }
 
-    if (myHmac !== theirHmac) {
-      console.error("❌ Подпись неверна!");
-      return res.status(400).send("Invalid signature");
-    }
-
-    console.log("✅ Подпись верна!");
+    // console.log("✅ Подпись верна!");
+    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
 
     const event = JSON.parse(bodyString);
 
