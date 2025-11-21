@@ -16,6 +16,7 @@ class YooKassaWebhooks {
 
     // Формируем строку строго по документации
     const signedString = `${version} ${timestamp} ${body}`;
+    console.log("❌ signedString: ", signedString);
 
     const myHmac = crypto
       .createHmac("sha256", this.secret)
@@ -48,7 +49,6 @@ export default async function yookassaWebhookHandler(req, res) {
     }
 
     console.log("✅ Подпись верна!");
-
     const event = JSON.parse(bodyString);
 
     if (event.event === "payment.succeeded") {
