@@ -15,13 +15,10 @@ export default async function yookassaWebhookHandler(req, res) {
     const signature = req.headers["signature"].split(" ");
 
     log(`📬 signature: ${signature}`);
-    log("📬 req: " + JSON.stringify(req, null, 2));
-    console.log("📬 req:", req);
+    // console.log("📬 req:", JSON.stringify(req, null, 2));
 
     console.log("📬 raw is buffer:", Buffer.isBuffer(req.body));
     console.log("📬 raw string:", req.body.toString("utf8"));
-
-    // log(`📬 req.body instanceof Buffer: ${req.body instanceof Buffer}`); // true
 
     const secret = process.env.YOOKASSA_SECRET!;
     const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
