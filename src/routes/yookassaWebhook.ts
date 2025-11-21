@@ -5,7 +5,6 @@ import crypto from "crypto";
 
 export default async function yookassaWebhookHandler(req, res) {
   try {
-    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
     if (!(req.body instanceof Buffer)) {
       console.error("❌ raw body is not Buffer");
       return res.status(400).send("Invalid body");
@@ -13,24 +12,18 @@ export default async function yookassaWebhookHandler(req, res) {
 
     const bodyString = req.body.toString("utf8");
     const signature = req.headers["signature"].split(" ");
-
     log(`📬 signature: ${signature}`);
-    // console.log("📬 req:", JSON.stringify(req, null, 2));
-
-    console.log("📬 raw is buffer:", Buffer.isBuffer(req.body));
-    console.log("📬 raw string:", req.body.toString("utf8"));
 
     const secret = process.env.YOOKASSA_SECRET!;
     const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
     log(`📬 myHmac: ${myHmac}`);
 
-    // if (myHmac !== signature[3]) {
-    //   console.error("❌ Подпись неверна!");
-    //   return res.status(400).send("Invalid signature");
-    // }
+    if (myHmac !== signature[3]) {
+      console.error("❌ Подпись неверна!");
+      return res.status(400).send("Invalid signature");
+    }
 
-    // console.log("✅ Подпись верна!");
-    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
+    console.log("✅ Подпись верна!");
 
     const event = JSON.parse(bodyString);
 
