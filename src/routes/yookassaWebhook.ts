@@ -3,29 +3,51 @@ import { bot } from "../bot/instance";
 import { log } from "../utils/logger";
 import crypto from "crypto";
 
+class YooKassaWebhooks {
+  constructor(private secret: string) {}
+
+  async verify(body: string | Buffer, signatureHeader: string): Promise<boolean> {
+    if (!signatureHeader) return false;
+
+    const parts = signatureHeader.split(" ");
+    if (parts.length !== 4) return false;
+
+    const [version, timestamp, algo, theirHmac] = parts;
+
+    // Формируем строку строго по документации
+    const signedString = `${version} ${timestamp} ${body}`;
+
+    const myHmac = crypto
+      .createHmac("sha256", this.secret)
+      .update(signedString)
+      .digest("base64");
+
+    log(`📬 myHmac: ${myHmac}`);
+    log(`📬 theirHmac: ${theirHmac}`);
+
+    return myHmac === theirHmac;
+  }
+}
+
+const webhooks = new YooKassaWebhooks(process.env.YOOKASSA_SECRET!);
+
 export default async function yookassaWebhookHandler(req, res) {
   try {
-    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
     if (!(req.body instanceof Buffer)) {
       console.error("❌ raw body is not Buffer");
       return res.status(400).send("Invalid body");
     }
 
     const bodyString = req.body.toString("utf8");
-    const signature = req.headers["signature"].split(" ");
-    log(`📬 signature: ${signature}`);
+    const signatureHeader = req.headers["signature"];
 
-    const secret = process.env.YOOKASSA_SECRET!;
-    const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
-    log(`📬 myHmac: ${myHmac}`);
+    // 💥 Проверка как в Octokit: verify(body, signature)
+    if (!(await webhooks.verify(bodyString, signatureHeader))) {
+      console.error("❌ Подпись неверна!");
+      return res.status(403).send("Forbidden");
+    }
 
-    // if (myHmac !== signature[3]) {
-    //   console.error("❌ Подпись неверна!");
-    //   return res.status(400).send("Invalid signature");
-    // }
-
-    // console.log("✅ Подпись верна!");
-    // !ВРЕМЕННО ЗАКОМЕНТИРОВАЛ!
+    console.log("✅ Подпись верна!");
 
     const event = JSON.parse(bodyString);
 
@@ -50,22 +72,21 @@ export default async function yookassaWebhookHandler(req, res) {
           where: { telegramId: String(telegramId) },
           data: {
             isPremium: true,
-            premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 дней
+            premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           },
         });
 
-        // Удаляем все ранее отправленные оффер-сообщения
         try {
           const offers = await (prisma as any).offerMessage.findMany({
             where: { telegramId: String(telegramId) },
           });
+
           for (const offer of offers) {
             try {
               await bot.telegram.deleteMessage(String(telegramId), offer.messageId);
-            } catch {
-              // пропускаем ошибки удаления (могло быть удалено вручную/истекло)
-            }
+            } catch {}
           }
+
           await (prisma as any).offerMessage.deleteMany({
             where: { telegramId: String(telegramId) },
           });
