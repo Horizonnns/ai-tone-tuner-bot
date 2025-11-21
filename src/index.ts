@@ -22,20 +22,20 @@ app.use(express.json());
 app.use("/api/payments", paymentsRouter);
 app.use("/api", rewriteRouter);
 
-// // Telegram webhook
-// app.post("/api/webhook", async (req, res) => {
-//   try {
-//     await bot.handleUpdate(req.body);
-//     res.sendStatus(200);
-//   } catch (err) {
-//     console.error("Ошибка при обработке webhook:", err);
-//     res.sendStatus(500);
-//   }
-// });
+// Telegram webhook
+app.post("/api/webhook", async (req, res) => {
+  try {
+    await bot.handleUpdate(req.body);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Ошибка при обработке webhook:", err);
+    res.sendStatus(500);
+  }
+});
 
-// app.get("/", (req, res) => {
-//   res.send("Server is alive!");
-// });
+app.get("/", (req, res) => {
+  res.send("Server is alive!");
+});
 
 // Запуск планировщика
 initScheduler();

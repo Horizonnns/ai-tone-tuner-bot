@@ -1,0 +1,17 @@
+// INFO: 📬 Webhook headers:
+{
+  "host": "ai-tone-tuner.up.railway.app",
+  "user-agent": "AHC/2.1",
+  "content-length": "1054",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "signature": "v1 30b0dba1 1 MGQCMHc8Ww5FtS6OSBfmFid01pKXOsrefOaWnlrX/ZZgjS/kGottSymU/p9CHAE3VriivwIwSC+egdSgQBfgsXk4x6gL1uL79iLXEg7cFEPP8Kdgli8Yqa9Exljw+8J2tEL2YOvo",
+  "x-forwarded-for": "77.75.153.78",
+  "x-forwarded-host": "ai-tone-tuner.up.railway.app",
+  "x-forwarded-proto": "https",
+  "x-railway-edge": "railway/europe-west4-drams3a",
+  "x-railway-request-id": "wJ8E6vCqSl2DJ-65jUJq2g",
+  "x-real-ip": "77.75.153.78",
+  "x-request-start": "1763624930097",
+  "accept-encoding": "gzip"
+}
