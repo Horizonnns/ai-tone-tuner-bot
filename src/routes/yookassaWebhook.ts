@@ -43,11 +43,11 @@ export default async function yookassaWebhookHandler(req, res) {
     const signatureHeader = req.headers["signature"];
 
     // 💥 Проверка как в Octokit: verify(body, signature)
-    // if (!(await webhooks.verify(bodyString, signatureHeader))) {
-    //   console.error("❌ Подпись неверна!");
-    //   return res.status(403).send("Forbidden");
-    // }
-    // console.log("✅ Подпись верна!");
+    if (!(await webhooks.verify(bodyString, signatureHeader))) {
+      console.error("❌ Подпись неверна!");
+      return res.status(403).send("Forbidden");
+    }
+    console.log("✅ Подпись верна!");
 
     const event = JSON.parse(bodyString);
 
