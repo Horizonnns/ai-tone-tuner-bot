@@ -7,13 +7,23 @@ import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
 import { router as rewriteRouter } from "./routes/rewrite";
 import { initScheduler } from "./scheduler/resetDailyLimit";
-import yookassaWebhookHandler from "./routes/yookassaWebhook";
+import { yookassaWebhookRouter } from "./routes/yookassaWebhook";
 
 dotenv.config();
 const app = express();
 
 // 1) RAW только для ЮKassa
-app.post("/api/payments/webhook", express.raw({ type: "*/*" }), yookassaWebhookHandler);
+app.use(
+  express.json({
+    verify: (req, _res, buf: Buffer) => {
+      // приведение типа — решает проблему TS2339
+      (req as express.Request).rawBody = buf.toString("utf8");
+    },
+  })
+);
+
+// app.post("/api/payments/webhook", express.raw({ type: "*/*" }), yookassaWebhookHandler);
+app.use("/api/yookassa/webhook", yookassaWebhookRouter);
 
 // 2) JSON для всех остальных
 app.use(express.json());
