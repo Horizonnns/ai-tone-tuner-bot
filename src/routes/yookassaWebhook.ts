@@ -14,9 +14,8 @@ export default async function yookassaWebhookHandler(req, res) {
     const bodyString = req.body.toString("utf8");
     const signature = req.headers["signature"].split(" ");
 
-    // log(`📬 Webhook raw body: ${bodyString}`);
     log(`📬 signature: ${signature}`);
-    log(`📬 signature[3]: ${signature[3]}`);
+    log(`📬 req.body instanceof Buffer: ${req.body instanceof Buffer}`);
 
     const secret = process.env.YOOKASSA_SECRET!;
     const myHmac = crypto.createHmac("sha256", secret).update(req.body).digest("base64");
