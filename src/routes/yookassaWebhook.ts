@@ -36,9 +36,9 @@ async function verifySignature(rawBody: string, signatureHeader?: string) {
 yookassaWebhookRouter.post("/", async (req, res) => {
   try {
     const rawBody = req.rawBody;
-    const signatureHeader = req.headers["y-signature"] as string;
+    const signatureHeader = req.headers["signature"] as string;
     log(`❌ signatureHeader: ${signatureHeader}`);
-    log(`❌ req.headers: ${JSON.stringify(req.headers)}`);
+    log(`❌ rawBody: ${JSON.stringify(req.rawBody)}`);
 
     const valid = await verifySignature(rawBody, signatureHeader);
     // if (!valid) return res.status(403).send("Forbidden");
