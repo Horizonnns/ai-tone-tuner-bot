@@ -37,12 +37,14 @@ yookassaWebhookRouter.post("/", async (req, res) => {
   try {
     const rawBody = req.rawBody;
     const signatureHeader = req.headers["y-signature"] as string;
-    log(`❌signatureHeader: ${signatureHeader}`);
+    log(`❌ signatureHeader: ${signatureHeader}`);
 
     const valid = await verifySignature(rawBody, signatureHeader);
     if (!valid) return res.status(403).send("Forbidden");
+    log(`❌ valid: ${valid}`);
 
     const event = JSON.parse(rawBody);
+    log(`❌ event: ${event}`);
 
     if (event.event !== "payment.succeeded") {
       return res.status(200).send("OK");
