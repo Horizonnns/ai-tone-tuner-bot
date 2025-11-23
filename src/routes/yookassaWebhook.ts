@@ -40,9 +40,9 @@ yookassaWebhookRouter.post("/", async (req, res) => {
     log(`❌ signatureHeader: ${signatureHeader}`);
     // log(`❌ rawBody: ${JSON.stringify(req.rawBody)}`);
 
-    const valid = await verifySignature(rawBody, signatureHeader);
+    // const valid = await verifySignature(rawBody, signatureHeader);
     // if (!valid) return res.status(403).send("Forbidden");
-    log(`❌ valid: ${valid}`);
+    // log(`❌ valid: ${valid}`);
 
     const event = JSON.parse(rawBody);
     log(`❌ event: ${event}`);
