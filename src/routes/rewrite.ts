@@ -1,5 +1,5 @@
 import express from "express";
-import { rewriteText } from "../services/openai/openai";
+import { rewriteWithOpenAI } from "../services/openai/openai";
 import { prisma } from "../db/client";
 import { getOrCreateUser } from "../services/user";
 
@@ -18,7 +18,7 @@ router.post("/rewrite", async (req, res) => {
 
     // 💎 Premium — безлимит
     if (user.isPremium) {
-      const rewritten = await rewriteText(text, tone);
+      const rewritten = await rewriteWithOpenAI(text, tone);
       return res.json({
         result: rewritten,
         remaining: "∞",
@@ -33,7 +33,7 @@ router.post("/rewrite", async (req, res) => {
     }
 
     // ✍️ Переписываем текст
-    const rewritten = await rewriteText(text, tone);
+    const rewritten = await rewriteWithOpenAI(text, tone);
 
     // Вычисляем начальный общий лимит: базовый (5) + реферальные попытки
     // Считаем все рефералы пользователя, а не только сегодняшние

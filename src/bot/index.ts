@@ -33,7 +33,7 @@ async function getUser(telegramId: string) {
 }
 
 // 🔄 Общая функция для переписывания текста
-async function rewriteText(
+async function handleRewriteRequest(
   ctx: any,
   originalText: string,
   tone: string,
@@ -194,7 +194,7 @@ bot.on("text", async (ctx) => {
       return;
     }
 
-    await rewriteText(ctx, originalText, tone, userId, tone);
+    await handleRewriteRequest(ctx, originalText, tone, userId, tone);
     return;
   }
 
@@ -271,7 +271,7 @@ bot.action(
       return;
     }
 
-    await rewriteText(ctx, originalText, tone, userId, toneLabel(tone));
+    await handleRewriteRequest(ctx, originalText, tone, userId, toneLabel(tone));
   }
 );
 

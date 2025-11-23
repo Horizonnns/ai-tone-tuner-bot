@@ -2,7 +2,7 @@ import { log } from "../../utils/logger";
 import { openaiClient } from "./openaiClient";
 import { buildRewriteMessages } from "../prompt";
 
-export async function rewriteText(text: string, tone: string) {
+export async function rewriteWithOpenAI(text: string, tone: string) {
   const messages = buildRewriteMessages(text, tone);
   const payload = { model: "gpt-4o-mini", messages } as const;
 
