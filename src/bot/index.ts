@@ -1,22 +1,16 @@
-import { Markup } from "telegraf";
-import axios from "axios";
 import dotenv from "dotenv";
-import { log, logError } from "../utils/logger";
-import { setupInline } from "./inline";
-import { toneLabel, buildToneKeyboard, TONE_SELECTION_TEXT } from "./tones";
-
-import { addReferral, generateReferralLink } from "../services/referral";
-import { prisma } from "../db/client";
+import { Markup } from "telegraf";
 import { bot } from "../bot/instance";
-import { getOrCreateUser } from "../services/user";
-import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
+import { prisma } from "../db/client";
+import { log } from "../utils/logger";
+import { setupInline } from "./inline";
 import { premiumOfferText } from "../utils/texts";
-import { handleLimitReached, isLimitError } from "./helpers";
-import {
-  setUserMessage,
-  getUserMessage,
-  deleteUserMessage,
-} from "../services/messageCache";
+import { getOrCreateUser } from "../services/user";
+import { handleRewriteRequest } from "./services/rewriteService";
+import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
+import { addReferral, generateReferralLink } from "../services/referral";
+import { setUserMessage, getUserMessage } from "../services/messageCache";
+import { toneLabel, buildToneKeyboard, TONE_SELECTION_TEXT } from "./tones";
 import {
   isAwaitingCustomTone,
   setAwaitingCustomTone,
@@ -24,70 +18,11 @@ import {
 } from "../services/userState";
 
 dotenv.config();
-const BACKEND_URL = process.env.BACKEND_URL;
 setupInline(bot);
 
 async function getUser(telegramId: string) {
   const user = await getOrCreateUser(telegramId);
   return user;
-}
-
-// 🔄 Общая функция для переписывания текста
-async function handleRewriteRequest(
-  ctx: any,
-  originalText: string,
-  tone: string,
-  userId: number,
-  toneDisplayName: string
-) {
-  const thinkingMsg = await ctx.reply("✨");
-
-  try {
-    const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
-      text: originalText,
-      tone,
-      telegramId: String(userId),
-    });
-
-    const { result, remaining, initialLimit, isPremium } = response.data;
-
-    if (isLimitError(response)) {
-      await handleLimitReached(ctx, thinkingMsg, userId);
-      return;
-    }
-
-    const totalLimit = initialLimit !== undefined ? initialLimit : 5;
-    const used = remaining !== "∞" ? totalLimit - remaining : 0;
-    const attemptsInfo =
-      !isPremium && remaining !== "∞"
-        ? `\n\n_${used}/${totalLimit} попыток на сегодня_`
-        : "";
-
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      thinkingMsg.message_id,
-      undefined,
-      `Вот твой текст в стиле *${toneDisplayName}*:\n\n${result}${attemptsInfo}`,
-      { parse_mode: "Markdown" }
-    );
-
-    log(`User ${userId} rewrote text in tone "${tone}" (${used}/${totalLimit})`);
-    deleteUserMessage(userId);
-  } catch (err: any) {
-    logError(`Ошибка при переписывании: ${err.message}`);
-
-    if (isLimitError(undefined, err)) {
-      await handleLimitReached(ctx, thinkingMsg, userId);
-      return;
-    }
-
-    await ctx.telegram.editMessageText(
-      ctx.chat.id,
-      thinkingMsg.message_id,
-      undefined,
-      "⚠️ Что-то пошло не так. Попробуй ещё раз позже!"
-    );
-  }
 }
 
 // 💎 Команда /premium — теперь с оплатой
