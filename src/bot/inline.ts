@@ -1,6 +1,6 @@
 import { Telegraf } from "telegraf";
 import dotenv from "dotenv";
-import { openaiClient } from "../services/openaiClient";
+import { openaiClient } from "../services/openai/openaiClient";
 import { buildRewriteMessages } from "../services/prompt";
 dotenv.config();
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { rewriteText } from "../services/openai";
+import { rewriteText } from "../services/openai/openai";
 import { prisma } from "../db/client";
 import { getOrCreateUser } from "../services/user";
 

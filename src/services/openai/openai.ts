@@ -1,6 +1,6 @@
-import { log } from "../utils/logger";
+import { log } from "../../utils/logger";
 import { openaiClient } from "./openaiClient";
-import { buildRewriteMessages } from "./prompt";
+import { buildRewriteMessages } from "../prompt";
 
 export async function rewriteText(text: string, tone: string) {
   const messages = buildRewriteMessages(text, tone);
