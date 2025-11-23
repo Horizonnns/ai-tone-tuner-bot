@@ -1,60 +1,37 @@
 import express from "express";
 import { rewriteWithOpenAI } from "../services/openai/openai";
-import { prisma } from "../db/client";
 import { getOrCreateUser } from "../services/user";
+import { getUserLimits, decrementUserLimit } from "../services/rewrite/rewriteLimiter";
 
 export const router = express.Router();
 
 router.post("/rewrite", async (req, res) => {
   try {
     const { text, tone, telegramId } = req.body;
-
     if (!text || !tone || !telegramId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Получаем или создаём пользователя
-    const user = await getOrCreateUser(telegramId);
+    await getOrCreateUser(telegramId);
+    const limits = await getUserLimits(telegramId);
 
-    // 💎 Premium — безлимит
-    if (user.isPremium) {
-      const rewritten = await rewriteWithOpenAI(text, tone);
+    if (!limits.isPremium && limits.dailyLimit <= 0) {
+      return res.status(403).json({ message: "Достигнут лимит на сегодня" });
+    }
+
+    const rewritten = await rewriteWithOpenAI(text, tone);
+
+    if (!limits.isPremium) {
+      const updated = await decrementUserLimit(telegramId);
       return res.json({
         result: rewritten,
-        remaining: "∞",
-        isPremium: true,
-        message: "Premium user — no limits",
+        remaining: updated.dailyLimit,
+        initialLimit: limits.limit,
+        isPremium: false,
       });
     }
 
-    // 🧮 Проверяем, есть ли попытки
-    if (user.dailyLimit <= 0) {
-      return res.status(403).json({ message: "Достигнут лимит попыток на сегодня" });
-    }
-
-    // ✍️ Переписываем текст
-    const rewritten = await rewriteWithOpenAI(text, tone);
-
-    // Вычисляем начальный общий лимит: базовый (5) + реферальные попытки
-    // Считаем все рефералы пользователя, а не только сегодняшние
-    const referralsCount = await prisma.referral.count({
-      where: { inviterId: telegramId },
-    });
-    const totalLimit = 5 + referralsCount * 2;
-
-    // 🔻 Уменьшаем лимит на 1
-    const updatedUser = await prisma.user.update({
-      where: { telegramId },
-      data: { dailyLimit: { decrement: 1 }, lastUsedAt: new Date() },
-    });
-
-    return res.json({
-      result: rewritten,
-      remaining: updatedUser.dailyLimit,
-      initialLimit: totalLimit,
-      isPremium: false,
-      message: `Осталось ${updatedUser.dailyLimit} попыток`,
-    });
+    return res.json({ result: rewritten, remaining: "∞", isPremium: true });
   } catch (err) {
     console.error("❌ Ошибка в /rewrite:", err);
     return res.status(500).json({ error: "Internal Server Error" });
