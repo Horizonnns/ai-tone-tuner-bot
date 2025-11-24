@@ -2,6 +2,7 @@ import axios from "axios";
 import { log, logError } from "../../utils/logger";
 import { deleteUserMessage } from "../../services/messageCache";
 import { handleLimitReached, isLimitError } from "../helpers";
+import { userLang, i18n } from "../../locales";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -33,16 +34,17 @@ export async function handleRewriteRequest(
     const totalLimit = initialLimit ?? 5;
     const used = remaining !== "∞" ? totalLimit - remaining : 0;
 
+    const lang = userLang.get(String(userId)) || "ru";
+    const t = i18n[lang];
+
     const attemptsInfo =
-      !isPremium && remaining !== "∞"
-        ? `\n\n_${used}/${totalLimit} попыток на сегодня_`
-        : "";
+      !isPremium && remaining !== "∞" ? t.result.attempts(used, totalLimit) : "";
 
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
-      `Вот твой текст в стиле *${toneDisplayName}*:\n\n${result}${attemptsInfo}`,
+      `${t.result.prefix(toneDisplayName)}\n\n${result}${attemptsInfo}`,
       { parse_mode: "Markdown" }
     );
 
@@ -56,11 +58,13 @@ export async function handleRewriteRequest(
       return;
     }
 
+    const lang = userLang.get(String(userId)) || "ru";
+    const t = i18n[lang];
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
-      "⚠️ Что-то пошло не так. Попробуй позже!"
+      t.errors.somethingWentWrong
     );
   }
 }
