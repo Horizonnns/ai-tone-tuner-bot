@@ -3,9 +3,11 @@ import { toneLabel } from "../bot/tones";
 
 export function buildRewriteMessages(
   text: string,
-  toneKeyOrLabel: string
+  toneKeyOrLabel: string,
+  userId?: string
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-  const normalizedTone = toneLabel(toneKeyOrLabel);
+  // Используем userId если передан, иначе используем дефолтный "ru"
+  const normalizedTone = toneLabel(toneKeyOrLabel, userId || "default");
   return [
     {
       role: "system",

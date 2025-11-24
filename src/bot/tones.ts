@@ -10,7 +10,8 @@ export type TToneKey =
   | "humorous";
 
 export function toneLabel(key: string, userId: string): string {
-  const lang = userLang.get(userId) || "ru";
+  // Если userId === "default", используем русский язык
+  const lang = userId === "default" ? "ru" : userLang.get(userId) || "ru";
   const t = i18n[lang];
   return t.tones.list[key] || key;
 }

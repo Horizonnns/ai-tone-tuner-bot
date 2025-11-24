@@ -2,8 +2,8 @@ import { log } from "../../utils/logger";
 import { openaiClient } from "./openaiClient";
 import { buildRewriteMessages } from "../prompt";
 
-export async function rewriteWithOpenAI(text: string, tone: string) {
-  const messages = buildRewriteMessages(text, tone);
+export async function rewriteWithOpenAI(text: string, tone: string, telegramId?: string) {
+  const messages = buildRewriteMessages(text, tone, telegramId);
   const payload = { model: "gpt-4o-mini", messages } as const;
 
   log(`OpenAI request: ${JSON.stringify(payload)}`);

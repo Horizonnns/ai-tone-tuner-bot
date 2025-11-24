@@ -19,7 +19,7 @@ router.post("/rewrite", async (req, res) => {
       return res.status(403).json({ message: "Достигнут лимит на сегодня" });
     }
 
-    const rewritten = await rewriteWithOpenAI(text, tone);
+    const rewritten = await rewriteWithOpenAI(text, tone, telegramId);
 
     if (!limits.isPremium) {
       const updated = await decrementUserLimit(telegramId);

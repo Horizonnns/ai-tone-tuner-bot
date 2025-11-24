@@ -10,7 +10,8 @@ export function setupInline(bot: Telegraf) {
     if (!query) return;
 
     try {
-      const messages = buildRewriteMessages(query, "friendly");
+      const userId = ctx.from.id.toString();
+      const messages = buildRewriteMessages(query, "friendly", userId);
       const completion = await openaiClient.chat.completions.create({
         model: "gpt-4o-mini",
         messages,
