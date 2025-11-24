@@ -56,7 +56,6 @@ const BACKEND_URL = process.env.BACKEND_URL;
 // Запуск сервера и бота через webhook
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  bot.launch();
 
   // Устанавливаем webhook для Telegram через Express роут
   const webhookUrl = `${BACKEND_URL}/api/webhook`;
