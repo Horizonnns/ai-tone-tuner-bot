@@ -11,7 +11,7 @@ import { handleRewriteRequest } from "./services/rewriteService";
 import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
 import { addReferral, generateReferralLink } from "../services/referral";
 import { setUserMessage, getUserMessage } from "../services/messageCache";
-import { toneLabel, buildToneKeyboard, TONE_SELECTION_TEXT } from "./tones";
+import { toneLabel, localizedToneHeader, buildLocalizedToneKeyboard } from "./tones";
 import {
   isAwaitingCustomTone,
   setAwaitingCustomTone,
@@ -49,24 +49,23 @@ bot.command("language", async (ctx) => {
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
   const telegramId = String(ctx.from.id);
+  const userId = ctx.from.id.toString();
   const user = await getOrCreateUser(telegramId);
+  const lang = userLang.get(userId) || "ru";
+  const t = i18n[lang];
 
   if (user.isPremium) {
     const until = user.premiumUntil
       ? new Date(user.premiumUntil).toLocaleDateString("ru-RU")
       : undefined;
-    await ctx.reply(
-      until
-        ? `💎 У тебя уже есть Premium ✨\nАктивен до: ${until}`
-        : "💎 У тебя уже есть Premium✨"
-    );
+    await ctx.reply(t.premium.alreadyHas(until));
     return;
   }
 
   const premiumUrl = buildPremiumUrl(ctx.from.id);
   const sent = await ctx.reply(
-    premiumOfferText(premiumUrl),
-    premiumReplyMarkup(premiumUrl)
+    premiumOfferText(premiumUrl, userId),
+    premiumReplyMarkup(premiumUrl, userId)
   );
   // Сохраняем id сообщения предложения, чтобы удалить после оплаты
   try {
@@ -116,37 +115,16 @@ bot.start(async (ctx) => {
       if (inviter) {
         if (!inviter.isPremium) {
           // Для обычных пользователей отправляем сообщение с информацией о попытках
+          const inviterLang = userLang.get(inviterId) || "ru";
+          const inviterT = i18n[inviterLang];
           await bot.telegram.sendMessage(
             inviterId,
-            `🎉 Твой друг ${ctx.from.first_name} присоединился по твоей ссылке!\nТы получил +2 попытки на сегодня 💪`
+            inviterT.referral.friendJoined(ctx.from.first_name)
           );
         }
       }
     }
   }
-
-  //   await ctx.replyWithMarkdownV2(
-  //     `Привет, ${ctx.from.first_name}\\! 👋
-  // Я *AI Tone Tuner* — твой редактор настроения\\. 💫
-  // Напиши текст, выбери стиль — и я сделаю его звучным\\!
-  // Напиши, например:
-  // _"Нужен React\\-разработчик"_`
-  //   );
-
-  // const link = generateReferralLink(userId);
-
-  //   await ctx.reply(
-  //     "Поделись ссылкой с друзьями и получи +2 попытки за каждого! 🎁",
-
-  //     Markup.inlineKeyboard([
-  //       Markup.button.url(
-  //         "📤 Поделится",
-  //         `https://t.me/share/url?url=${encodeURIComponent(link)}`
-  //       ),
-  //     ])
-  //   );
-
-  //   log(`Пользователь ${ctx.from.id} запустил бота`);
 });
 
 // 💬 Принимаем текст
@@ -161,11 +139,20 @@ bot.on("text", async (ctx) => {
     clearAwaitingCustomTone(userId);
 
     if (!originalText) {
-      await ctx.reply("Сначала отправь текст, затем выбери стиль 🙂");
+      const userIdStr = userId.toString();
+      const lang = userLang.get(userIdStr) || "ru";
+      const t = i18n[lang];
+      await ctx.reply(t.errors.sendTextThenStyle);
       return;
     }
 
-    await handleRewriteRequest(ctx, originalText, tone, userId, tone);
+    await handleRewriteRequest(
+      ctx,
+      originalText,
+      tone,
+      userId,
+      toneLabel(tone, userId.toString())
+    );
     return;
   }
 
@@ -174,13 +161,20 @@ bot.on("text", async (ctx) => {
   const telegramId = String(ctx.from.id);
   // Редактируем сообщение пользователя, заменяя его на сообщение с клавиатурой
   try {
+    const userId = ctx.from.id.toString();
+
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       ctx.message.message_id,
       undefined,
-      TONE_SELECTION_TEXT,
-      { reply_markup: { inline_keyboard: buildToneKeyboard("collapsed", false) } }
+      localizedToneHeader(userId),
+      {
+        reply_markup: {
+          inline_keyboard: buildLocalizedToneKeyboard(userId, "collapsed"),
+        },
+      }
     );
+
     // Сохраняем id сообщения с клавиатурой, чтобы удалить после выбора стиля
     try {
       await (prisma as any).offerMessage.create({
@@ -191,9 +185,11 @@ bot.on("text", async (ctx) => {
       });
     } catch {}
   } catch (err) {
+    const userId = ctx.from.id.toString();
+
     // Если не удалось отредактировать, отправляем новое сообщение
-    const sentStyle = await ctx.reply(TONE_SELECTION_TEXT, {
-      reply_markup: { inline_keyboard: buildToneKeyboard("collapsed", false) },
+    const sentStyle = await ctx.reply(localizedToneHeader(userId), {
+      reply_markup: { inline_keyboard: buildLocalizedToneKeyboard(userId, "collapsed") },
     });
     try {
       if (sentStyle && typeof sentStyle === "object" && "message_id" in sentStyle) {
@@ -264,11 +260,20 @@ bot.action(
     } catch {}
 
     if (!originalText) {
-      await ctx.reply("Отправь текст сначала 🙂");
+      const userId = ctx.from.id.toString();
+      const lang = userLang.get(userId) || "ru";
+      const t = i18n[lang];
+      await ctx.reply(t.errors.sendTextFirst);
       return;
     }
 
-    await handleRewriteRequest(ctx, originalText, tone, userId, toneLabel(tone));
+    await handleRewriteRequest(
+      ctx,
+      originalText,
+      tone,
+      userId,
+      toneLabel(tone, userId.toString())
+    );
   }
 );
 
@@ -294,15 +299,17 @@ bot.action("tone_custom", async (ctx) => {
   } catch {}
 
   setAwaitingCustomTone(userId, true);
-  await ctx.reply(
-    "Напиши стиль/тон, в котором переписать (пример: 'лаконичный официальный')"
-  );
+  const userIdStr = userId.toString();
+  const lang = userLang.get(userIdStr) || "ru";
+  const t = i18n[lang];
+  await ctx.reply(t.errors.customTonePrompt);
 });
 
 bot.action("tone_more", async (ctx) => {
   try {
+    const userId = ctx.from.id.toString();
     await ctx.editMessageReplyMarkup({
-      inline_keyboard: buildToneKeyboard("expanded", false),
+      inline_keyboard: buildLocalizedToneKeyboard(userId, "expanded"),
     });
   } catch {}
 });
@@ -310,8 +317,9 @@ bot.action("tone_more", async (ctx) => {
 // Свернуть дополнительные тона
 bot.action("tone_less", async (ctx) => {
   try {
+    const userId = ctx.from.id.toString();
     await ctx.editMessageReplyMarkup({
-      inline_keyboard: buildToneKeyboard("collapsed", false),
+      inline_keyboard: buildLocalizedToneKeyboard(userId, "collapsed"),
     });
   } catch {}
 });
