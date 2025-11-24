@@ -1,6 +1,7 @@
 import { prisma } from "../db/client";
 import { bot } from "../bot/instance";
 import { log } from "../utils/logger";
+import { userLang, i18n } from "../locales";
 import crypto from "crypto";
 import axios from "axios";
 import express from "express";
@@ -93,11 +94,11 @@ yookassaWebhookRouter.post("/", async (req, res) => {
     });
 
     // Отправляем подтверждение пользователю
-    await bot.telegram.sendMessage(
-      telegramId,
-      "🎉 Оплата прошла успешно!\n💎 *AI Tone Tuner Premium* активирован на 30 дней",
-      { parse_mode: "Markdown" }
-    );
+    const lang = userLang.get(String(telegramId)) || "ru";
+    const t = i18n[lang];
+    await bot.telegram.sendMessage(telegramId, t.premium.success, {
+      parse_mode: "Markdown",
+    });
 
     log(`💎 Premium активирован для пользователя ${telegramId}`);
     res.status(200).send("OK");

@@ -1,19 +1,13 @@
-import { isLocalhostUrl } from "./telegram";
+import { userLang, i18n } from "../locales";
 
-export function premiumOfferText(premiumUrl: string): string {
-  const base =
-    "✨ Открой безлимитные переписывания\n\n" +
-    "💎 Оформи *AI Tone Tuner Premium* на 30 дней и пиши без ограничений\n\n";
-  return (
-    base + (isLocalhostUrl(premiumUrl) ? `\n\nСсылка для оплаты: ${premiumUrl}` : "")
-  );
+export function premiumOfferText(premiumUrl: string, userId?: string): string {
+  const lang = userId ? userLang.get(userId) || "ru" : "ru";
+  const t = i18n[lang];
+  return t.premium.offer(premiumUrl);
 }
 
-export function limitReachedText(premiumUrl: string): string {
-  const base =
-    "🔥 Ты выжал максимум из бесплатного плана. Завтра — новая энергия! 💪\n\n" +
-    "💎 Хочешь без ограничений? Подключи Premium ✨";
-  return (
-    base + (isLocalhostUrl(premiumUrl) ? `\n\nСсылка для оплаты: ${premiumUrl}` : "")
-  );
+export function limitReachedText(premiumUrl: string, userId?: string): string {
+  const lang = userId ? userLang.get(userId) || "ru" : "ru";
+  const t = i18n[lang];
+  return t.limit.reached(premiumUrl);
 }

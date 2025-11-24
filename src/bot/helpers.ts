@@ -5,8 +5,9 @@ import { prisma } from "../db/client";
 
 export async function handleLimitReached(ctx: any, thinkingMsg: any, userId: number) {
   const premiumUrl = buildPremiumUrl(ctx.from.id);
-  const messageText = limitReachedText(premiumUrl);
-  const replyMarkup = premiumReplyMarkup(premiumUrl);
+  const userIdStr = String(userId);
+  const messageText = limitReachedText(premiumUrl, userIdStr);
+  const replyMarkup = premiumReplyMarkup(premiumUrl, userIdStr);
 
   await ctx.telegram.editMessageText(
     ctx.chat.id,
