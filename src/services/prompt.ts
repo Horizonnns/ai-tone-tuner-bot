@@ -1,25 +1,21 @@
 import OpenAI from "openai";
 import { toneLabel } from "../bot/tones";
+import { userLang, i18n } from "../locales";
 
 export function buildRewriteMessages(
   text: string,
   toneKeyOrLabel: string,
   userId?: string
 ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+  // Определяем язык пользователя
+  const lang = userId && userId !== "default" ? userLang.get(userId) || "ru" : "ru";
+  const t = i18n[lang];
+
   // Используем userId если передан, иначе используем дефолтный "ru"
   const normalizedTone = toneLabel(toneKeyOrLabel, userId || "default");
+
   return [
-    {
-      role: "system",
-      content: `Ты профессиональный редактор и копирайтер. Перепиши данный текст в ${normalizedTone}.
-      Обязательно:
-      - Сделай текст естественным и легко читаемым.
-      - Добавь лёгкие штрихи эмоций и выразительности, соответствующие стилю.
-      - Если текст короткий (1–2 фразы), сделай его немного живее, но не чрезмерно украшай.`,
-    },
-    {
-      role: "user",
-      content: `Текст для переписывания: ${text}`,
-    },
+    { role: "system", content: t.prompt.system(normalizedTone) },
+    { role: "user", content: `${t.prompt.user} ${text}` },
   ];
 }
