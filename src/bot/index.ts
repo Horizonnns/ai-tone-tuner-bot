@@ -6,6 +6,7 @@ import { log } from "../utils/logger";
 import { setupInline } from "./inline";
 import { premiumOfferText } from "../utils/texts";
 import { getOrCreateUser } from "../services/user";
+import { i18n, userLang, TLang } from "../locales/index";
 import { handleRewriteRequest } from "./services/rewriteService";
 import { buildPremiumUrl, premiumReplyMarkup } from "../utils/telegram";
 import { addReferral, generateReferralLink } from "../services/referral";
@@ -61,6 +62,22 @@ bot.command("premium", async (ctx) => {
 });
 
 bot.start(async (ctx) => {
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback("🇷🇺 Русский", "lang_ru"),
+      Markup.button.callback("🇹🇯 Тоҷикӣ", "lang_tj"),
+    ],
+    [
+      Markup.button.callback("🇺🇿 O'zbekcha", "lang_uz"),
+      Markup.button.callback("🇰🇿 Қазақша", "lang_kz"),
+    ],
+  ]);
+
+  await ctx.reply(
+    "Выберите язык / Забонро интихоб кунед / Tilni tanlang / Тілді таңдаңыз",
+    keyboard
+  );
+
   const args = ctx.message.text.split(" ");
   const inviterId = args[1];
   const userId = ctx.from.id.toString();
@@ -88,28 +105,28 @@ bot.start(async (ctx) => {
     }
   }
 
-  await ctx.replyWithMarkdownV2(
-    `Привет, ${ctx.from.first_name}\\! 👋
-Я *AI Tone Tuner* — твой редактор настроения\\. 💫
-Напиши текст, выбери стиль — и я сделаю его звучным\\!
-Напиши, например:
-_"Нужен React\\-разработчик"_`
-  );
+  //   await ctx.replyWithMarkdownV2(
+  //     `Привет, ${ctx.from.first_name}\\! 👋
+  // Я *AI Tone Tuner* — твой редактор настроения\\. 💫
+  // Напиши текст, выбери стиль — и я сделаю его звучным\\!
+  // Напиши, например:
+  // _"Нужен React\\-разработчик"_`
+  //   );
 
-  const link = generateReferralLink(userId);
+  // const link = generateReferralLink(userId);
 
-  await ctx.reply(
-    "Поделись ссылкой с друзьями и получи +2 попытки за каждого! 🎁",
+  //   await ctx.reply(
+  //     "Поделись ссылкой с друзьями и получи +2 попытки за каждого! 🎁",
 
-    Markup.inlineKeyboard([
-      Markup.button.url(
-        "📤 Поделится",
-        `https://t.me/share/url?url=${encodeURIComponent(link)}`
-      ),
-    ])
-  );
+  //     Markup.inlineKeyboard([
+  //       Markup.button.url(
+  //         "📤 Поделится",
+  //         `https://t.me/share/url?url=${encodeURIComponent(link)}`
+  //       ),
+  //     ])
+  //   );
 
-  log(`Пользователь ${ctx.from.id} запустил бота`);
+  //   log(`Пользователь ${ctx.from.id} запустил бота`);
 });
 
 // 💬 Принимаем текст
@@ -174,6 +191,32 @@ bot.on("text", async (ctx) => {
 // Обработчик заголовка (ничего не делает, просто отвечает на callback)
 bot.action("tone_header", async (ctx) => {
   await ctx.answerCbQuery();
+});
+
+bot.action(/lang_(.+)/, async (ctx) => {
+  const lang = ctx.match[1] as TLang;
+  const userId = ctx.from.id.toString();
+
+  userLang.set(userId, lang);
+  const t = i18n[lang];
+  await ctx.editMessageText(t.greeting(ctx.from.first_name), {
+    parse_mode: "MarkdownV2",
+  });
+
+  const link = generateReferralLink(userId);
+
+  // После приветствия можно показать дальнейшие кнопки
+  await ctx.reply(
+    t.invite,
+    Markup.inlineKeyboard([
+      Markup.button.url(
+        `📤 ${t.share}`,
+        `https://t.me/share/url?url=${encodeURIComponent(link)}`
+      ),
+    ])
+  );
+
+  log(`Пользователь ${ctx.from.id} запустил бота`);
 });
 
 // ⚙️ Обработка выбора стиля
