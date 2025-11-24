@@ -59,7 +59,7 @@ app.listen(PORT, async () => {
   bot.launch();
 
   // Устанавливаем webhook для Telegram через Express роут
-  // const webhookUrl = `${BACKEND_URL}/api/webhook`;
-  // await bot.telegram.setWebhook(webhookUrl);
-  // log(`🤖 Telegram бот webhook установлен: ${webhookUrl}`);
+  const webhookUrl = `${BACKEND_URL}/api/webhook`;
+  await bot.telegram.setWebhook(webhookUrl);
+  log(`🤖 Telegram бот webhook установлен: ${webhookUrl}`);
 });
