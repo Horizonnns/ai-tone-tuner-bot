@@ -3,6 +3,12 @@ import { log, logError } from "../../utils/logger";
 import { deleteUserMessage } from "../../services/messageCache";
 import { handleLimitReached, isLimitError } from "../helpers";
 import { userLang, i18n } from "../../locales";
+import {
+  withRetry,
+  DEFAULT_TIMEOUT,
+  DEFAULT_MAX_RETRIES,
+  isRetryableError,
+} from "../../utils/retryTimeout";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -18,11 +24,27 @@ export async function handleRewriteRequest(
   const thinkingMsg = await ctx.reply("✨");
 
   try {
-    const response = await axios.post(`${BACKEND_URL}/api/rewrite`, {
-      text: originalText,
-      tone,
-      telegramId: String(userId),
-    });
+    const response = await withRetry(
+      () =>
+        axios.post(
+          `${BACKEND_URL}/api/rewrite`,
+          {
+            text: originalText,
+            tone,
+            telegramId: String(userId),
+          },
+          {
+            timeout: DEFAULT_TIMEOUT,
+          }
+        ),
+      {
+        onRetry: (attempt, error) => {
+          logError(
+            `Axios request failed (attempt ${attempt}/${DEFAULT_MAX_RETRIES}): ${error.message}. Retrying...`
+          );
+        },
+      }
+    );
 
     const { result, remaining, initialLimit, isPremium } = response.data;
 
@@ -51,7 +73,13 @@ export async function handleRewriteRequest(
     log(`User ${userId} rewrote text in tone "${tone}" (${used}/${totalLimit})`);
     deleteUserMessage(userId);
   } catch (err: any) {
-    logError(`Ошибка при переписывании: ${err.message}`);
+    const errorCode = err.code || err.response?.status;
+    const errorMessage = err.message || "Unknown error";
+    const isNetworkError = isRetryableError(err);
+
+    logError(
+      `Ошибка при переписывании: ${errorMessage} (code: ${errorCode}, network: ${isNetworkError})`
+    );
 
     if (isLimitError(undefined, err)) {
       await handleLimitReached(ctx, thinkingMsg, userId);
