@@ -26,6 +26,26 @@ async function getUser(telegramId: string) {
   return user;
 }
 
+// Команда /language — для выбора языка
+bot.command("language", async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const currentLang = userLang.get(userId) || "ru";
+  const t = i18n[currentLang];
+
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback("🇷🇺 Русский", "lang_ru"),
+      Markup.button.callback("🇹🇯 Тоҷикӣ", "lang_tj"),
+    ],
+    [
+      Markup.button.callback("🇺🇿 O'zbekcha", "lang_uz"),
+      Markup.button.callback("🇰🇿 Қазақша", "lang_kz"),
+    ],
+  ]);
+
+  await ctx.reply(t.choose_language, keyboard);
+});
+
 // 💎 Команда /premium — теперь с оплатой
 bot.command("premium", async (ctx) => {
   const telegramId = String(ctx.from.id);
