@@ -13,6 +13,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const BACKEND_URL = process.env.BACKEND_URL;
+const LONG_WAIT_THRESHOLD_MS = 8000;
 
 export async function handleRewriteRequest(
   ctx: any,
@@ -22,55 +23,76 @@ export async function handleRewriteRequest(
   toneDisplayName: string
 ) {
   const thinkingMsg = await ctx.reply("✨");
+  const userIdStr = String(userId);
+  const lang = userLang.get(userIdStr) || "ru";
+  const t = i18n[lang];
+
+  let waitTimeout: NodeJS.Timeout | null = null;
+  let waitMessageShown = false;
 
   try {
+    waitTimeout = setTimeout(() => {
+      waitMessageShown = true;
+      const waitText =
+        t.status?.longWait || "⏳ AI думает чуть дольше обычного... спасибо за терпение!";
+      ctx.telegram
+        .editMessageText(ctx.chat.id, thinkingMsg.message_id, undefined, waitText)
+        .catch((err: any) =>
+          logError(`Не удалось показать сообщение ожидания: ${err?.message || err}`)
+        );
+    }, LONG_WAIT_THRESHOLD_MS);
+
+    let attemptCount = 1;
+    const requestStartedAt = Date.now();
+
     const response = await withRetry(
       () =>
         axios.post(
           `${BACKEND_URL}/api/rewrite`,
-          {
-            text: originalText,
-            tone,
-            telegramId: String(userId),
-          },
+          { text: originalText, tone, telegramId: String(userId) },
           {
             timeout: DEFAULT_TIMEOUT,
           }
         ),
       {
         onRetry: (attempt, error) => {
+          attemptCount = attempt + 1;
           logError(
-            `Axios request failed (attempt ${attempt}/${DEFAULT_MAX_RETRIES}): ${error.message}. Retrying...`
+            `Axios request failed (attempt ${attempt}/${DEFAULT_MAX_RETRIES}): ${error.message}`
           );
         },
       }
     );
 
-    const { result, remaining, initialLimit, isPremium } = response.data;
+    const latency = Date.now() - requestStartedAt;
 
-    if (isLimitError(response)) {
-      await handleLimitReached(ctx, thinkingMsg, userId);
-      return;
-    }
+    log(
+      `Rewrite latency: user=${userId}, tone=${tone}, duration=${latency}ms, attempts=${attemptCount}, waitMessageShown=${waitMessageShown}`
+    );
 
-    const totalLimit = initialLimit ?? 5;
-    const used = remaining !== "∞" ? totalLimit - remaining : 0;
-
-    const lang = userLang.get(String(userId)) || "ru";
-    const t = i18n[lang];
+    const data = response.data;
+    const totalLimit = data.initialLimit ?? 5;
+    const remaining = data.remaining ?? 0;
+    const usedAttempts = remaining !== "∞" ? totalLimit - Number(remaining ?? 0) : 0;
 
     const attemptsInfo =
-      !isPremium && remaining !== "∞" ? t.result.attempts(used, totalLimit) : "";
+      !data.isPremium && remaining !== "∞"
+        ? t.result.attempts(usedAttempts, totalLimit)
+        : "";
+
+    const finalText = `${t.result.prefix(toneDisplayName)}\n\n${
+      data.result
+    }${attemptsInfo}`;
 
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
-      `${t.result.prefix(toneDisplayName)}\n\n${result}${attemptsInfo}`,
+      finalText,
       { parse_mode: "Markdown" }
     );
 
-    log(`User ${userId} rewrote text in tone "${tone}" (${used}/${totalLimit})`);
+    log(`User ${userId} rewrote text in tone "${tone}" (${usedAttempts}/${totalLimit})`);
     deleteUserMessage(userId);
   } catch (err: any) {
     const errorCode = err.code || err.response?.status;
@@ -86,13 +108,13 @@ export async function handleRewriteRequest(
       return;
     }
 
-    const lang = userLang.get(String(userId)) || "ru";
-    const t = i18n[lang];
     await ctx.telegram.editMessageText(
       ctx.chat.id,
       thinkingMsg.message_id,
       undefined,
       t.errors.somethingWentWrong
     );
+  } finally {
+    if (waitTimeout) clearTimeout(waitTimeout);
   }
 }
