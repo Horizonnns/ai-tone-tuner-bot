@@ -3,35 +3,68 @@ import { openaiClient } from "./openaiClient";
 import { buildRewriteMessages } from "../prompt";
 import { withRetry, DEFAULT_MAX_RETRIES } from "../../utils/retryTimeout";
 
-export async function rewriteWithOpenAI(text: string, tone: string, telegramId?: string) {
+export interface RewriteCallOptions {
+  stream?: boolean;
+}
+
+export interface RewriteResult {
+  result: string;
+  latency: number;
+  attempts: number;
+  usage: { prompt: number; completion: number; total: number };
+}
+
+export async function rewriteWithOpenAI(
+  text: string,
+  tone: string,
+  telegramId?: string
+): Promise<RewriteResult> {
   const messages = buildRewriteMessages(text, tone, telegramId);
-  const payload = { model: "gpt-4o-mini", messages } as const;
+  const payload = { model: "gpt-4o-mini", messages };
+
+  const startedAt = Date.now();
 
   log(`OpenAI request: ${JSON.stringify(payload)}`);
 
   try {
-    const res = await withRetry(() => openaiClient.chat.completions.create(payload), {
-      onRetry: (attempt, error) => {
-        logError(
-          `OpenAI request failed (attempt ${attempt}/${DEFAULT_MAX_RETRIES}): ${
-            error.message || error.type || "Unknown error"
-          }. Retrying...`
-        );
-      },
-    });
-    const usage = (res as any).usage || {};
+    let attemptCount = 1;
 
-    log(
-      `OpenAI response: choices=${res.choices?.length || 0}, tokens={ prompt:${
-        usage.prompt_tokens || 0
-      }, completion:${usage.completion_tokens || 0}, total:${usage.total_tokens || 0} }`
+    const res = await withRetry(
+      () => openaiClient.chat.completions.create(payload as any),
+      {
+        onRetry: (attempt, error) => {
+          attemptCount = attempt + 1;
+          logError(
+            `OpenAI request failed (attempt ${attempt}/${DEFAULT_MAX_RETRIES}): ${
+              error.message || error.type || "Unknown error"
+            }`
+          );
+        },
+      }
     );
 
-    return res.choices[0].message?.content?.trim() || "";
+    const latency = Date.now() - startedAt;
+
+    const usage = (res as any).usage || {};
+    const usagePayload = {
+      prompt: usage.prompt_tokens || 0,
+      completion: usage.completion_tokens || 0,
+      total: usage.total_tokens || 0,
+    };
+
+    log(
+      `OpenAI response: latency=${latency}ms tokens={ prompt:${usagePayload.prompt}, completion:${usagePayload.completion}, total:${usagePayload.total} }`
+    );
+
+    return {
+      result: res.choices[0]?.message?.content?.trim() || "",
+      attempts: attemptCount,
+      latency,
+      usage: usagePayload,
+    };
   } catch (error: any) {
     const errorCode = error.code || error.status || error.type;
-    const errorMessage = error.message || "Unknown error";
-    logError(`OpenAI API error: ${errorMessage} (code: ${errorCode})`);
+    logError(`OpenAI API error: ${error.message} (code: ${errorCode})`);
     throw error;
   }
 }
