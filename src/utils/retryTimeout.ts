@@ -1,8 +1,8 @@
 import { logError } from "./logger";
 
-export const DEFAULT_TIMEOUT = 60000; // 60 seconds
-export const DEFAULT_MAX_RETRIES = 3;
-export const DEFAULT_RETRY_DELAY_MS = 1000; // Start with 1 second
+export const DEFAULT_TIMEOUT = 25000; // 25 seconds
+export const DEFAULT_MAX_RETRIES = 2;
+export const DEFAULT_RETRY_DELAY_MS = 500; // Start with 0.5 seconds
 
 // Network error codes that can be retried
 const RETRYABLE_CODES = [
