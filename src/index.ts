@@ -2,6 +2,7 @@ import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
 import paymentsRouter from "./routes/payments";
+import adminMetricsRouter from "./routes/adminMetrics";
 
 import { bot } from "./bot/instance";
 import { log } from "./utils/logger";
@@ -29,8 +30,9 @@ app.use("/api/yookassa/webhook", yookassaWebhookRouter);
 app.use(express.json());
 
 // 3) Остальные маршруты
-app.use("/api/payments", paymentsRouter);
 app.use("/api", rewriteRouter);
+app.use("/api/payments", paymentsRouter);
+app.use("/api/admin", adminMetricsRouter);
 
 // Telegram webhook
 app.post("/api/webhook", async (req, res) => {
