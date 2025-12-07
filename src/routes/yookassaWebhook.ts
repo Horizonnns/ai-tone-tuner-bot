@@ -5,6 +5,7 @@ import { userLang, i18n } from "../locales";
 import crypto from "crypto";
 import axios from "axios";
 import express from "express";
+import { recordError } from "../services/metricsService";
 
 export const yookassaWebhookRouter = express.Router();
 
@@ -104,6 +105,7 @@ yookassaWebhookRouter.post("/", async (req, res) => {
     res.status(200).send("OK");
   } catch (err) {
     console.error("Ошибка обработчика webhook:", err);
+    recordError().catch(() => {});
     res.status(500).send("Error");
   }
 });
