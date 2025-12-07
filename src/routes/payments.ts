@@ -1,6 +1,7 @@
 import { log } from "../utils/logger";
 import express from "express";
 import { yookassa } from "../services/yookassa/yookassa";
+import { recordError } from "../services/metricsService";
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.get("/create", async (req, res) => {
     res.redirect(url);
   } catch (err: any) {
     console.error("Ошибка при создании платежа:", err.message);
+    recordError().catch(() => {});
     res.status(500).json({ error: err.message });
   }
 });
