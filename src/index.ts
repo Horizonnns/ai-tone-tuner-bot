@@ -1,6 +1,7 @@
 import "./bot/index"; // <- важно, чтобы бот подключился
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors";
 import paymentsRouter from "./routes/payments";
 import adminMetricsRouter from "./routes/adminMetrics";
 
@@ -13,6 +14,8 @@ import { recordError } from "./services/metricsService";
 
 dotenv.config();
 const app = express();
+
+app.use(cors());
 
 // 1) RAW только для ЮKassa
 app.use(
