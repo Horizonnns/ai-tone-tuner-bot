@@ -9,6 +9,7 @@ import {
   DEFAULT_MAX_RETRIES,
   isRetryableError,
 } from "../../utils/retryTimeout";
+import { recordError } from "../../services/metricsService";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -102,6 +103,11 @@ export async function handleRewriteRequest(
     logError(
       `Ошибка при переписывании: ${errorMessage} (code: ${errorCode}, network: ${isNetworkError})`
     );
+
+    // Записываем метрику ошибки (кроме ошибок лимита, так как это не системная ошибка)
+    if (!isLimitError(undefined, err)) {
+      recordError().catch(() => {});
+    }
 
     if (isLimitError(undefined, err)) {
       await handleLimitReached(ctx, thinkingMsg, userId);
