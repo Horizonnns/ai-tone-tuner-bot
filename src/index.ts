@@ -9,6 +9,7 @@ import { log } from "./utils/logger";
 import { router as rewriteRouter } from "./routes/rewrite";
 import { initScheduler } from "./scheduler/resetDailyLimit";
 import { yookassaWebhookRouter } from "./routes/yookassaWebhook";
+import { recordError } from "./services/metricsService";
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,7 @@ app.post("/api/webhook", async (req, res) => {
     res.sendStatus(200);
   } catch (err) {
     console.error("Ошибка при обработке webhook:", err);
+    recordError().catch(() => {});
     res.sendStatus(500);
   }
 });
