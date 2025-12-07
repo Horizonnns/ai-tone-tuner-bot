@@ -12,7 +12,8 @@
     "db:reset": "prisma migrate reset --force --skip-seed && prisma generate",
     "prisma:studio": "prisma studio",
     "postinstall": "if [ \"$RAILWAY_ENVIRONMENT\" = \"production\" ]; then npx prisma migrate deploy && npm run build; fi",
-    "test": "npx ts-node src/tests/simulateLoad.ts"
+    "test:simulateLoad": "npx ts-node src/tests/simulateLoad.ts",
+    "test:metrics": "npx ts-node src/tests/testMetrics.ts"
   },
   "prisma": {
     "schema": "src/db/schema.prisma"
