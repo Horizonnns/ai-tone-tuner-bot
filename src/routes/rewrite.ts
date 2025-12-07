@@ -3,6 +3,7 @@ import { getOrCreateUser } from "../services/user";
 import { recordLatencySample } from "../utils/metrics";
 import { RewriteJobOptions, rewriteQueue } from "../services/rewrite/rewriteQueue";
 import { getUserLimits, decrementUserLimit } from "../services/rewrite/rewriteLimiter";
+import { recordError } from "../services/metricsService";
 
 export const router = express.Router();
 
@@ -57,6 +58,7 @@ router.post("/rewrite", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Ошибка в /rewrite:", err);
+    recordError().catch(() => {});
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
