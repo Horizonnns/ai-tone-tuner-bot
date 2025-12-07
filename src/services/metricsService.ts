@@ -124,6 +124,7 @@ export async function getMetrics() {
       : Math.round(latencySamples.reduce((a, b) => a + b, 0) / latencySamples.length);
   const p95 = percentile(latencySamples, 0.95);
   const p50 = percentile(latencySamples, 0.5);
+  const peakLatency = latencySamples.length === 0 ? 0 : Math.max(...latencySamples);
 
   // today's counts from file
   const today = todayKey();
@@ -151,6 +152,31 @@ export async function getMetrics() {
     where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
   });
 
+  // история оплат (последние 30 дней, группировка по дням)
+  const paymentsHistory = await prisma.payment.findMany({
+    where: {
+      createdAt: { gte: start30 },
+      status: "succeeded", // только успешные платежи
+    },
+    select: {
+      createdAt: true,
+      amount: true,
+      currency: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // группировка по дням
+  const paymentsByDay: Record<string, { count: number; totalAmount: number }> = {};
+  paymentsHistory.forEach((payment) => {
+    const day = payment.createdAt.toISOString().slice(0, 10);
+    if (!paymentsByDay[day]) {
+      paymentsByDay[day] = { count: 0, totalAmount: 0 };
+    }
+    paymentsByDay[day].count += 1;
+    paymentsByDay[day].totalAmount += payment.amount;
+  });
+
   // rewrites total from storage
   const totalRewrites = m.total_rewrites || 0;
 
@@ -170,17 +196,18 @@ export async function getMetrics() {
   // errors
   const errorsTotal = m.errors_total || 0;
 
-  // queue length: best-effort, try to require rewriteQueue if available global (optional)
+  // queue metrics: get from rewriteQueue
   let queueLength = null;
+  let concurrentTasks = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const rq = require("../services/rewrite/rewriteQueue");
-    if (rq && rq.rewriteQueue && typeof rq.rewriteQueue["queueLength"] !== "undefined") {
-      // if rewriteQueue exposes a method/field for queue length — use it
-      queueLength = rq.rewriteQueue["queueLength"] ?? null;
+    const { rewriteQueue } = await import("../services/rewrite/rewriteQueue.js");
+    if (rewriteQueue) {
+      queueLength = rewriteQueue.queueLength ?? null;
+      concurrentTasks = rewriteQueue.concurrentTasks ?? null;
     }
   } catch {
     queueLength = null;
+    concurrentTasks = null;
   }
 
   return {
@@ -201,6 +228,7 @@ export async function getMetrics() {
     payments: {
       total_payments: paymentsTotal,
       new_payments_24h: payments24h,
+      history_30d: paymentsByDay, // история оплат за 30 дней
     },
     errors: {
       total_errors: errorsTotal,
@@ -208,9 +236,11 @@ export async function getMetrics() {
     },
     system: {
       queue_length: queueLength,
+      concurrent_tasks: concurrentTasks,
       latency_avg_ms: avgLatency,
       latency_p50_ms: p50,
       latency_p95_ms: p95,
+      latency_peak_ms: peakLatency,
       latency_samples: latencySamples.length,
     },
   };
