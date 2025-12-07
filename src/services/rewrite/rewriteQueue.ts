@@ -1,3 +1,4 @@
+import { recordRewrite, recordError } from "../../services/metricsService";
 import { rewriteWithOpenAI, RewriteCallOptions, RewriteResult } from "../openai/openai";
 
 export interface RewriteJobOptions extends RewriteCallOptions {
@@ -28,6 +29,14 @@ class RewriteQueue {
     });
   }
 
+  get queueLength(): number {
+    return this.queue.length;
+  }
+
+  get concurrentTasks(): number {
+    return this.running;
+  }
+
   private async process() {
     if (this.running >= this.concurrency) return;
     const job = this.queue.shift();
@@ -41,8 +50,19 @@ class RewriteQueue {
         job.options.tone,
         job.options.telegramId
       );
+
+      // сохранить метрику
+      recordRewrite({
+        latencyMs: result.latency,
+        inputChars: job.options.text?.length || 0,
+        outputChars: result.result?.length || 0,
+        tone: job.options.tone,
+      }).catch(() => {});
+
       job.resolve(result);
     } catch (err) {
+      recordError().catch(() => {});
+
       job.reject(err);
     } finally {
       this.running -= 1;
