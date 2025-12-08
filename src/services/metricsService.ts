@@ -227,6 +227,7 @@ export async function getMetrics() {
     usage: {
       total_rewrites: totalRewrites,
       rewrites_today,
+      rewrites_by_day: m.rewrites_by_day || {},
       avg_input_length: avgInputLength,
       avg_output_length: avgOutputLength,
       tones: toneCounts,

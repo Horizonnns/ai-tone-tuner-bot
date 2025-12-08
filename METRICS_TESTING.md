@@ -48,6 +48,16 @@ http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY
   "usage": {
     "total_rewrites": 1250,
     "rewrites_today": 45,
+    "rewrites_by_day": {
+      "2024-12-01": 35,
+      "2024-12-02": 42,
+      "2024-12-03": 38,
+      "2024-12-04": 51,
+      "2024-12-05": 45,
+      "2024-12-06": 48,
+      "2024-12-07": 52,
+      "2024-12-08": 45
+    },
     "avg_input_length": 120,
     "avg_output_length": 150,
     "tones": {
@@ -150,7 +160,7 @@ cat logs/metrics.json
 ### ✅ Основные метрики
 
 - [ ] **Пользователи**: `users.total`, `users.active_today`, `users.active_7d`, `users.active_30d`, `users.premium`
-- [ ] **Использование**: `usage.total_rewrites`, `usage.rewrites_today`, `usage.avg_input_length`, `usage.avg_output_length`, `usage.tones`
+- [ ] **Использование**: `usage.total_rewrites`, `usage.rewrites_today`, `usage.rewrites_by_day`, `usage.avg_input_length`, `usage.avg_output_length`, `usage.tones`
 - [ ] **Платежи**: `payments.total_payments`, `payments.new_payments_24h`, `payments.history_30d`
 - [ ] **Ошибки**: `errors.total_errors`, `errors.errors_today`
 - [ ] **Система**: `system.queue_length`, `system.concurrent_tasks`, `system.latency_avg_ms`, `system.latency_p50_ms`, `system.latency_p95_ms`, `system.latency_peak_ms`, `system.uptime_seconds`
