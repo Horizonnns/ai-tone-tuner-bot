@@ -7,6 +7,9 @@ import { log, logError } from "../utils/logger";
 const METRICS_FILE = path.join(process.cwd(), "logs", "metrics.json");
 const MAX_LATENCY_SAMPLES = 500;
 
+// Track server start time for uptime calculation
+let serverStartTime: number = Date.now();
+
 type StoredMetrics = {
   total_rewrites: number;
   rewrites_by_day: Record<string, number>; // YYYY-MM-DD -> count
@@ -210,6 +213,9 @@ export async function getMetrics() {
     concurrentTasks = null;
   }
 
+  // Calculate uptime in seconds
+  const uptimeSeconds = Math.floor((Date.now() - serverStartTime) / 1000);
+
   return {
     users: {
       total: totalUsers,
@@ -242,6 +248,7 @@ export async function getMetrics() {
       latency_p95_ms: p95,
       latency_peak_ms: peakLatency,
       latency_samples: latencySamples.length,
+      uptime_seconds: uptimeSeconds,
     },
   };
 }

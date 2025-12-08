@@ -13,6 +13,7 @@ npm run test:metrics
 ```
 
 Скрипт:
+
 - ✅ Запишет несколько тестовых переписок
 - ✅ Запишет тестовые ошибки
 - ✅ Получит и выведет все метрики
@@ -28,11 +29,13 @@ curl 'http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY' | jq
 ```
 
 Или откройте в браузере:
+
 ```
 http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY
 ```
 
 **Пример ответа:**
+
 ```json
 {
   "users": {
@@ -74,7 +77,8 @@ http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY
     "latency_p50_ms": 1700,
     "latency_p95_ms": 3200,
     "latency_peak_ms": 4500,
-    "latency_samples": 250
+    "latency_samples": 250,
+    "uptime_seconds": 86400
   }
 }
 ```
@@ -88,6 +92,7 @@ cat logs/metrics.json | jq
 ```
 
 Или вручную:
+
 ```bash
 cat logs/metrics.json
 ```
@@ -95,11 +100,13 @@ cat logs/metrics.json
 ### 4. Проверка в реальном времени
 
 1. **Запустите сервер:**
+
    ```bash
    npm run dev
    ```
 
 2. **Отправьте тестовый запрос на переписывание:**
+
    ```bash
    curl -X POST http://localhost:4000/api/rewrite \
      -H "Content-Type: application/json" \
@@ -111,6 +118,7 @@ cat logs/metrics.json
    ```
 
 3. **Проверьте метрики:**
+
    ```bash
    curl 'http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY' | jq '.usage'
    ```
@@ -125,6 +133,7 @@ cat logs/metrics.json
 Для проверки записи ошибок можно:
 
 1. **Вызвать невалидный запрос:**
+
    ```bash
    curl -X POST http://localhost:4000/api/rewrite \
      -H "Content-Type: application/json" \
@@ -144,7 +153,7 @@ cat logs/metrics.json
 - [ ] **Использование**: `usage.total_rewrites`, `usage.rewrites_today`, `usage.avg_input_length`, `usage.avg_output_length`, `usage.tones`
 - [ ] **Платежи**: `payments.total_payments`, `payments.new_payments_24h`, `payments.history_30d`
 - [ ] **Ошибки**: `errors.total_errors`, `errors.errors_today`
-- [ ] **Система**: `system.queue_length`, `system.concurrent_tasks`, `system.latency_avg_ms`, `system.latency_p50_ms`, `system.latency_p95_ms`, `system.latency_peak_ms`
+- [ ] **Система**: `system.queue_length`, `system.concurrent_tasks`, `system.latency_avg_ms`, `system.latency_p50_ms`, `system.latency_p95_ms`, `system.latency_peak_ms`, `system.uptime_seconds`
 
 ### ✅ Функции записи
 
@@ -163,16 +172,19 @@ cat logs/metrics.json
 Если метрики не работают:
 
 1. **Проверьте переменные окружения:**
+
    ```bash
    echo $ADMIN_METRICS_KEY
    ```
 
 2. **Проверьте права на запись:**
+
    ```bash
    ls -la logs/
    ```
 
 3. **Проверьте логи:**
+
    ```bash
    tail -f logs/bot.log
    ```
@@ -185,17 +197,19 @@ cat logs/metrics.json
 ## 📝 Примеры использования
 
 ### Получить только метрики пользователей:
+
 ```bash
 curl 'http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY' | jq '.users'
 ```
 
 ### Получить только метрики системы:
+
 ```bash
 curl 'http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY' | jq '.system'
 ```
 
 ### Мониторинг в реальном времени:
+
 ```bash
 watch -n 5 "curl -s 'http://localhost:4000/api/admin/metrics?key=YOUR_SECRET_KEY' | jq '.usage.rewrites_today, .system.queue_length, .system.concurrent_tasks'"
 ```
-
